@@ -1,0 +1,115 @@
+/* ── 전체 기본 설정 ── */
+:root {
+    --primary: #FF8FAB;       /* 메인 핑크 */
+    --primary-dark: #E5738F;  /* 호버용 다크 핑크 */
+    --primary-light: #FFF0F4; /* 연한 핑크 배경 */
+    --secondary: #A8D8EA;     /* 포인트 하늘색 */
+    --text-dark: #3D3D3D;
+    --text-muted: #888888;
+    --white: #FFFFFF;
+    --shadow: 0 4px 20px rgba(255, 143, 171, 0.15);
+}
+
+body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background-color: #FFF8FA;
+    color: var(--text-dark);
+}
+
+/* ── 로그인 카드 ── */
+.login-wrap {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-card {
+    width: 420px;
+    background: var(--white);
+    border-radius: 20px;
+    padding: 48px 40px;
+    box-shadow: var(--shadow);
+    border: none;
+}
+
+.login-logo {
+    font-size: 2.5rem;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.login-title {
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 32px;
+}
+
+/* ── 폼 ── */
+.form-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+}
+
+.form-control {
+    border-radius: 10px;
+    border: 1.5px solid #F0D0DA;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(255, 143, 171, 0.15);
+    outline: none;
+}
+
+/* ── 버튼 ── */
+.btn-primary {
+    background-color: var(--primary);
+    border: none;
+    border-radius: 10px;
+    padding: 11px;
+    font-weight: 700;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+}
+
+.btn-outline-secondary {
+    border-radius: 8px;
+    font-size: 0.85rem;
+    border-color: #E0C0CA;
+    color: var(--text-muted);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* ── 알림 메시지 ── */
+.alert {
+    border-radius: 10px;
+    font-size: 0.9rem;
+}
+
+/* ── 구분선 ── */
+hr {
+    border-color: #F0D0DA;
+    margin: 24px 0;
+}
+
+.register-text {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
