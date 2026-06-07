@@ -14,6 +14,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements ApplicationRunner {
@@ -85,6 +87,26 @@ public class DataInitializer implements ApplicationRunner {
                     .classroom(classroom)
                     .build());
             System.out.println("테스트 원아 3명 생성 완료");
+        }
+
+// 테스트용 학부모 계정 생성
+        if (!userRepository.existsByEmail("parent@daycare.com")) {
+            User parent = userRepository.save(User.builder()
+                    .name("김부모")
+                    .email("parent@daycare.com")
+                    .password(passwordEncoder.encode("parent1234"))
+                    .role(User.Role.PARENT)
+                    .status(User.Status.ACTIVE)
+                    .emailNotification(true)
+                    .build());
+
+            // 원아 목록 다시 조회해서 첫 번째 원아와 연결
+            List<Child> children = childRepository.findByClassroomId(classroom.getId());
+            if (!children.isEmpty()) {
+                children.get(0).assignParent(parent);
+                childRepository.save(children.get(0));
+            }
+            System.out.println("학부모 계정 생성 완료 - 원아 연결 완료");
         }
     }
 }

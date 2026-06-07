@@ -31,6 +31,7 @@ public class NoticeService {
     private final UserRepository userRepository;
     private final NoticePhotoRepository noticePhotoRepository;
     private final NoticeReadRepository noticeReadRepository;
+    private final NoticeReplyRepository noticeReplyRepository;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -142,5 +143,24 @@ public class NoticeService {
         }
 
         return notice;
+    }
+
+    // 학부모 답장 저장
+    @Transactional
+    public void saveReply(String email, Long noticeId, String content) {
+
+        User parent = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 학부모입니다."));
+
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 알림장입니다."));
+
+        NoticeReply reply = NoticeReply.builder()
+                .content(content)
+                .notice(notice)
+                .parent(parent)
+                .build();
+
+        noticeReplyRepository.save(reply);
     }
 }
