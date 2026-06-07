@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
+<head>
+    <th:block layout:fragment="head-extra">
+        <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+    </th:block>
+</head>
+
+<th:block layout:fragment="content">
+    <div>
+        <div class="mb-4">
+            <h4 class="fw-bold" style="color: var(--primary)">🌿 일정</h4>
+        </div>
+
+        <div class="card shadow-sm p-3">
+            <div id="calendar"></div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="scheduleDetailModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: var(--primary-light);">
+                    <h5 class="modal-title fw-bold">일정 상세</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">제목</label>
+                        <input type="text" class="form-control" id="detailTitle" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">날짜</label>
+                        <input type="date" class="form-control" id="detailDate" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">내용</label>
+                        <textarea class="form-control" id="detailContent" rows="3" readonly></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">닫기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block layout:fragment="script-extra">
+    <script th:inline="javascript">
+        const scheduleData = /*[[${schedules}]]*/ [];
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+                initialView: 'dayGridMonth',
+                locale: 'ko',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,listWeek'
+                },
+                events: scheduleData.map(s => ({
+                    id: s.id,
+                    title: s.title,
+                    start: s.date,
+                    extendedProps: { content: s.content }
+                })),
+                eventClick: function(info) {
+                    document.getElementById('detailTitle').value = info.event.title;
+                    document.getElementById('detailDate').value = info.event.startStr;
+                    document.getElementById('detailContent').value = info.event.extendedProps.content || '';
+                    new bootstrap.Modal(document.getElementById('scheduleDetailModal')).show();
+                }
+            });
+            calendar.render();
+        });
+    </script>
+</th:block>
+
+</html>
