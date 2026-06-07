@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,6 +30,8 @@ public class NoticeService {
     private final ClassroomRepository classroomRepository;
     private final UserRepository userRepository;
     private final NoticePhotoRepository noticePhotoRepository;
+    private final NoticeReadRepository noticeReadRepository;
+    private final NoticeReplyRepository noticeReplyRepository;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -67,11 +70,9 @@ public class NoticeService {
                 .orElse(null);
 
         if (notice != null) {
-            // 수정
             notice.update(dto.getMeal(), dto.getPlay(), dto.getToilet(),
                     dto.getSpecial(), dto.getExtra(), dto.isAttended());
         } else {
-            // 새로 생성
             notice = Notice.builder()
                     .date(dto.getDate())
                     .meal(dto.getMeal())
@@ -86,24 +87,18 @@ public class NoticeService {
             noticeRepository.save(notice);
         }
 
-// 사진 저장
+        // 사진 저장
         if (dto.getPhotos() != null) {
             for (MultipartFile photo : dto.getPhotos()) {
                 if (!photo.isEmpty()) {
-                    // 절대 경로로 업로드 디렉토리 생성
                     Path uploadPath = Paths.get(System.getProperty("user.dir"), uploadDir);
                     if (!Files.exists(uploadPath)) {
                         Files.createDirectories(uploadPath);
                     }
-
-                    // UUID로 파일명 중복 방지
                     String fileName = UUID.randomUUID() + "_" + photo.getOriginalFilename();
                     Path filePath = uploadPath.resolve(fileName);
-
-                    // transferTo 대신 Files.copy 사용
                     Files.copy(photo.getInputStream(), filePath);
 
-                    // DB에 사진 경로 저장
                     NoticePhoto noticePhoto = NoticePhoto.builder()
                             .filePath(fileName)
                             .notice(notice)
@@ -112,5 +107,60 @@ public class NoticeService {
                 }
             }
         }
+    }
+
+    // 학부모용 - 본인 아이 알림장 목록 조회
+    @Transactional(readOnly = true)
+    public List<Notice> getParentNoticeList(String email) {
+
+        User parent = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 학부모입니다."));
+
+        Child child = childRepository.findByParentId(parent.getId())
+                .orElseThrow(() -> new IllegalArgumentException("연결된 원아가 없습니다."));
+
+        return noticeRepository.findByChildIdOrderByDateDesc(child.getId());
+    }
+
+    // 학부모용 - 알림장 상세 조회 + 읽음 처리
+    @Transactional
+    public Notice getNoticeDetail(String email, Long noticeId) {
+
+        User parent = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 학부모입니다."));
+
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 알림장입니다."));
+
+        // 읽음 처리
+        if (notice.getNoticeRead() == null) {
+            NoticeRead noticeRead = NoticeRead.builder()
+                    .notice(notice)
+                    .parent(parent)
+                    .readAt(LocalDateTime.now())
+                    .build();
+            noticeReadRepository.save(noticeRead);
+        }
+
+        return notice;
+    }
+
+    // 학부모 답장 저장
+    @Transactional
+    public void saveReply(String email, Long noticeId, String content) {
+
+        User parent = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 학부모입니다."));
+
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 알림장입니다."));
+
+        NoticeReply reply = NoticeReply.builder()
+                .content(content)
+                .notice(notice)
+                .parent(parent)
+                .build();
+
+        noticeReplyRepository.save(reply);
     }
 }

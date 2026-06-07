@@ -6,6 +6,8 @@
 </head>
 <body>
 <h1>원장 관리자 페이지</h1>
-<a th:href="@{/auth/logout}">로그아웃</a>
+<form th:action="@{/auth/logout}" method="post" class="d-inline">
+    <button type="submit" class="btn btn-outline-secondary btn-sm">로그아웃</button>
+</form>
 </body>
 </html>
