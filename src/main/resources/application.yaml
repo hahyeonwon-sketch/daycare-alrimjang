@@ -1,3 +1,6 @@
 spring:
   application:
     name: alrimjang
+
+  profiles:
+    active: dev
