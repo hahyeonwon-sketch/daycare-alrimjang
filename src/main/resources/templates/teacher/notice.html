@@ -13,7 +13,7 @@
 
     <!-- 상단 헤더 -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold" style="color: var(--primary)">🌸 알림장</h4>
+        <h4 class="fw-bold" style="color: var(--primary)">알림장</h4>
         <a th:href="@{/auth/logout}" class="btn btn-outline-secondary btn-sm">로그아웃</a>
     </div>
 
@@ -33,34 +33,34 @@
                 <thead>
                 <tr style="background-color: var(--primary-light);">
                     <th class="ps-4">원아 이름</th>
-                    <th>등원 여부</th>
-                    <th>학부모 메모</th>
-                    <th>읽은 시간</th>
-                    <th>작성</th>
+                    <th class="text-center">등원 여부</th>
+                    <th class="text-center">학부모 메모</th>
+                    <th class="text-center">읽은 시간</th>
+                    <th class="text-center">작성</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr th:each="notice : ${noticeList}">
                     <td class="ps-4 fw-bold" th:text="${notice.childName}"></td>
-                    <td>
+                    <td class="text-center">
                         <span th:if="${notice.attended}" class="badge bg-success">O</span>
                         <span th:unless="${notice.attended}" class="badge bg-secondary">X</span>
                     </td>
-                    <td>
+                    <td class="text-center">
                             <span th:if="${notice.parentMemoContent != null}"
                                   th:text="${#strings.abbreviate(notice.parentMemoContent, 20)}"
                                   class="text-muted small"></span>
                         <span th:unless="${notice.parentMemoContent != null}"
                               class="text-muted small">-</span>
                     </td>
-                    <td>
+                    <td class="text-center">
                             <span th:if="${notice.readAt != null}"
                                   th:text="${#temporals.format(notice.readAt, 'HH:mm')}"
                                   class="text-muted small"></span>
                         <span th:unless="${notice.readAt != null}"
                               class="text-muted small">미확인</span>
                     </td>
-                    <td>
+                    <td class="text-center">
                         <button class="btn btn-primary btn-sm"
                                 th:data-child-id="${notice.childId}"
                                 th:data-child-name="${notice.childName}"
@@ -172,8 +172,8 @@
 
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
-                    <button type="submit" class="btn btn-primary">저장</button>
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">취소</button>
+                    <button type="submit" class="btn btn-primary px-4 py-2">저장</button>
                 </div>
             </form>
         </div>
