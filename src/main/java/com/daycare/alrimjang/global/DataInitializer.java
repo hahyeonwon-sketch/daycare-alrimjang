@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -108,12 +109,16 @@ public class DataInitializer implements ApplicationRunner {
             }
             System.out.println("학부모 계정 생성 완료 - 원아 연결 완료");
         } else {
+            // 이미 연결된 경우 스킵
             User parent = userRepository.findByEmail("parent@daycare.com").get();
-            List<Child> children = childRepository.findByClassroomId(classroom.getId());
-            if (!children.isEmpty()) {
-                children.get(0).addParent(parent);
-                childRepository.save(children.get(0));
-                System.out.println("기존 학부모 계정 원아 재연결 완료");
+            Optional<Child> existingChild = childRepository.findByParentId(parent.getId());
+            if (existingChild.isEmpty()) {
+                List<Child> children = childRepository.findByClassroomId(classroom.getId());
+                if (!children.isEmpty()) {
+                    children.get(0).addParent(parent);
+                    childRepository.save(children.get(0));
+                    System.out.println("기존 학부모 계정 원아 재연결 완료");
+                }
             }
         }
     }

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
+
+<th:block layout:fragment="content">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-4">
+            <a th:href="@{/admin/dashboard}" class="btn btn-outline-secondary btn-sm">← 대시보드</a>
+            <h4 class="fw-bold mb-0" style="color: var(--primary)">🏫 반 관리</h4>
+        </div>
+
+        <!-- 반 추가 -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="fw-bold mb-3" style="color: var(--primary)">반 추가</div>
+                <form th:action="@{/admin/classroom/save}" method="post" class="d-flex gap-2">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <input type="text" class="form-control" name="name" placeholder="반 이름 입력" style="max-width: 300px;" required>
+                    <button type="submit" class="btn btn-primary">추가</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 반 목록 -->
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="fw-bold mb-3" style="color: var(--primary)">반 목록</div>
+                <div th:if="${#lists.isEmpty(classrooms)}" class="text-muted small">등록된 반이 없습니다.</div>
+                <table th:unless="${#lists.isEmpty(classrooms)}" class="table table-hover mb-0">
+                    <thead style="background-color: var(--primary-light);">
+                    <tr>
+                        <th>반 이름</th>
+                        <th>삭제</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="classroom : ${classrooms}">
+                        <td th:text="${classroom.name}"></td>
+                        <td>
+                            <form th:action="@{/admin/classroom/{id}/delete(id=${classroom.id})}" method="post">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm"
+                                        onclick="return confirm('삭제하시겠습니까?')">삭제</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+</html>

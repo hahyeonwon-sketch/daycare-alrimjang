@@ -17,4 +17,9 @@ public interface ChildRepository extends JpaRepository<Child, Long> {
     @EntityGraph(attributePaths = {"classroom"})
     @Query("SELECT c FROM Child c JOIN c.parents p WHERE p.id = :parentId")
     Optional<Child> findByParentId(@Param("parentId") Long parentId);
+
+    // 전체 조회 - classroom, parents 같이 로딩
+    @Override
+    @EntityGraph(attributePaths = {"classroom", "parents"})
+    List<Child> findAll();
 }
