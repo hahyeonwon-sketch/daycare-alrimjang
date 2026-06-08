@@ -44,6 +44,9 @@
                     <a class="nav-link" th:href="@{/teacher/event}"
                        th:classappend="${activePage == 'event'} ? 'active fw-bold' : ''">행사보고</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/teacher/mypage}">마이페이지</a>
+                </li>
             </ul>
 
             <!-- 학부모 메뉴 -->
@@ -63,6 +66,9 @@
                 <li class="nav-item">
                     <a class="nav-link" th:href="@{/parent/event}"
                        th:classappend="${activePage == 'event'} ? 'active fw-bold' : ''">행사보고</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/parent/mypage}">마이페이지</a>
                 </li>
             </ul>
 
