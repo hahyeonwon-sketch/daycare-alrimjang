@@ -13,7 +13,7 @@ public interface ClassroomRepository extends JpaRepository<Classroom, Long> {
     @Query("SELECT ct.classroom FROM ClassroomTeacher ct WHERE ct.user.id = :teacherId")
     List<Classroom> findByTeacherId(@Param("teacherId") Long teacherId);
 
-    // 학부모 ID로 소속 반 조회 (원아 → 반)
-    @Query("SELECT c.classroom FROM Child c WHERE c.parent.id = :parentId")
+    // 학부모 ID로 소속 반 조회 (N:M)
+    @Query("SELECT c.classroom FROM Child c JOIN c.parents p WHERE p.id = :parentId")
     Optional<Classroom> findByParentId(@Param("parentId") Long parentId);
 }

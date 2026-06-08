@@ -13,6 +13,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -27,6 +28,7 @@ public class DataInitializer implements ApplicationRunner {
     private final ChildRepository childRepository;
 
     @Override
+    @Transactional
     public void run(ApplicationArguments args) throws Exception {
 
         // ADMIN 계정 생성
@@ -64,7 +66,6 @@ public class DataInitializer implements ApplicationRunner {
                     .emailNotification(true)
                     .build());
 
-            // 교사 반 배정
             classroomTeacherRepository.save(ClassroomTeacher.builder()
                     .classroom(classroom)
                     .user(teacher)
@@ -89,7 +90,7 @@ public class DataInitializer implements ApplicationRunner {
             System.out.println("테스트 원아 3명 생성 완료");
         }
 
-// 테스트용 학부모 계정 생성
+        // 테스트용 학부모 계정 생성
         if (!userRepository.existsByEmail("parent@daycare.com")) {
             User parent = userRepository.save(User.builder()
                     .name("김부모")
@@ -100,13 +101,20 @@ public class DataInitializer implements ApplicationRunner {
                     .emailNotification(true)
                     .build());
 
-            // 원아 목록 다시 조회해서 첫 번째 원아와 연결
             List<Child> children = childRepository.findByClassroomId(classroom.getId());
             if (!children.isEmpty()) {
-                children.get(0).assignParent(parent);
+                children.get(0).addParent(parent);
                 childRepository.save(children.get(0));
             }
             System.out.println("학부모 계정 생성 완료 - 원아 연결 완료");
+        } else {
+            User parent = userRepository.findByEmail("parent@daycare.com").get();
+            List<Child> children = childRepository.findByClassroomId(classroom.getId());
+            if (!children.isEmpty()) {
+                children.get(0).addParent(parent);
+                childRepository.save(children.get(0));
+                System.out.println("기존 학부모 계정 원아 재연결 완료");
+            }
         }
     }
 }
