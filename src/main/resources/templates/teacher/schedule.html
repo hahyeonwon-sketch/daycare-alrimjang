@@ -16,6 +16,12 @@
         </div>
 
         <div class="card shadow-sm p-3">
+            <!-- 월 선택 -->
+            <div class="d-flex gap-2 mb-3 align-items-center">
+                <input type="month" id="monthPicker" class="form-control" style="width: 200px;">
+                <button class="btn btn-primary btn-sm" onclick="goToMonth()">이동</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="goToToday()">today</button>
+            </div>
             <div id="calendar"></div>
         </div>
     </div>
@@ -36,8 +42,12 @@
                             <input type="text" class="form-control" name="title" id="scheduleTitle" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">날짜</label>
+                            <label class="form-label fw-bold">시작일</label>
                             <input type="date" class="form-control" name="date" id="scheduleDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">종료일</label>
+                            <input type="date" class="form-control" name="endDate" id="scheduleEndDate">
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">내용</label>
@@ -95,27 +105,47 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
     <script>
         let currentScheduleId = null;
+        let calendar;
 
         document.addEventListener('DOMContentLoaded', function() {
-            const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+            calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
                 initialView: 'dayGridMonth',
                 locale: 'ko',
                 headerToolbar: {
-                    left: 'prev,next today',
+                    left: 'prev',
                     center: 'title',
-                    right: 'dayGridMonth,listWeek'
+                    right: 'next'
                 },
                 events: scheduleData.map(s => ({
                     id: s.id,
                     title: s.title,
                     start: s.date,
+                    end: s.endDate ? s.endDate : s.date,
                     extendedProps: { content: s.content }
                 })),
                 dateClick: function(info) { openAddModal(info.dateStr); },
                 eventClick: function(info) { openDetailModal(info.event); }
             });
             calendar.render();
+
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('monthPicker').value = `${yyyy}-${mm}`;
         });
+
+        function goToMonth() {
+            const val = document.getElementById('monthPicker').value;
+            if (val) calendar.gotoDate(val + '-01');
+        }
+
+        function goToToday() {
+            calendar.today();
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('monthPicker').value = `${yyyy}-${mm}`;
+        }
 
         function openAddModal(date = '') {
             document.getElementById('scheduleModalTitle').textContent = '일정 등록';

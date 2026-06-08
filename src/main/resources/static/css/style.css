@@ -222,3 +222,44 @@ hr {
         font-size: 1.1rem;
     }
 }
+
+/* ── FullCalendar 모바일 반응형 ── */@media (max-width: 768px) {
+    .fc .fc-daygrid-day-number {
+        font-size: 0.7rem;
+        padding: 1px;
+    }
+
+    .fc .fc-col-header-cell-cushion {
+        font-size: 0.7rem;
+        padding: 3px 1px;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 0.95rem;
+    }
+
+    .fc .fc-button {
+        padding: 3px 6px !important;
+        font-size: 0.75rem !important;
+    }
+
+    .fc .fc-daygrid-day {
+        min-height: 35px !important;
+    }
+
+    .fc .fc-scrollgrid-sync-inner {
+        min-height: 35px !important;
+    }
+
+}
+
+/* ── FullCalendar 헤더 타이틀 간격 ── */
+.fc .fc-toolbar {
+    gap: 8px;
+}
+
+.fc .fc-toolbar-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}

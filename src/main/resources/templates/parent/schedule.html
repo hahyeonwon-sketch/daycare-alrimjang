@@ -14,8 +14,13 @@
             <h4 class="fw-bold" style="color: var(--primary)">🌿 일정</h4>
         </div>
 
-        <div class="card shadow-sm p-3">
-            <div id="calendar"></div>
+        <div class="card shadow-sm p-3" style="overflow: hidden; height: auto;">
+            <div class="d-flex gap-2 mb-3 align-items-center">
+                <input type="month" id="monthPicker" class="form-control" style="width: 200px;">
+                <button class="btn btn-primary btn-sm" onclick="goToMonth()">이동</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="goToToday()">today</button>
+            </div>
+            <div id="calendar" style="width: 100%;"></div>
         </div>
     </div>
 
@@ -32,8 +37,12 @@
                         <input type="text" class="form-control" id="detailTitle" readonly>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">날짜</label>
+                        <label class="form-label fw-bold">시작일</label>
                         <input type="date" class="form-control" id="detailDate" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">종료일</label>
+                        <input type="date" class="form-control" id="detailEndDate" readonly>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">내용</label>
@@ -54,30 +63,52 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
     <script>
+        let calendar;
+
         document.addEventListener('DOMContentLoaded', function() {
-            const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+            calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
                 initialView: 'dayGridMonth',
                 locale: 'ko',
                 headerToolbar: {
-                    left: 'prev,next today',
+                    left: 'prev',
                     center: 'title',
-                    right: 'dayGridMonth,listWeek'
+                    right: 'next'
                 },
                 events: scheduleData.map(s => ({
                     id: s.id,
                     title: s.title,
                     start: s.date,
-                    extendedProps: { content: s.content }
+                    end: s.endDate ? s.endDate : s.date,
+                    extendedProps: { content: s.content, endDate: s.endDate }
                 })),
                 eventClick: function(info) {
                     document.getElementById('detailTitle').value = info.event.title;
                     document.getElementById('detailDate').value = info.event.startStr;
+                    document.getElementById('detailEndDate').value = info.event.extendedProps.endDate || '';
                     document.getElementById('detailContent').value = info.event.extendedProps.content || '';
                     new bootstrap.Modal(document.getElementById('scheduleDetailModal')).show();
                 }
             });
             calendar.render();
+
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('monthPicker').value = `${yyyy}-${mm}`;
         });
+
+        function goToMonth() {
+            const val = document.getElementById('monthPicker').value;
+            if (val) calendar.gotoDate(val + '-01');
+        }
+
+        function goToToday() {
+            calendar.today();
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('monthPicker').value = `${yyyy}-${mm}`;
+        }
     </script>
 </th:block>
 

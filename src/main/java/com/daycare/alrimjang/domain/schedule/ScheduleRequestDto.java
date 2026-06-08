@@ -15,5 +15,8 @@ public class ScheduleRequestDto {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate date;
 
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    private LocalDate endDate; // 종료일 추가
+
     private String content;
 }

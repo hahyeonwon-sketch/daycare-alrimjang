@@ -58,6 +58,7 @@ public class ScheduleService {
         Schedule schedule = Schedule.builder()
                 .title(dto.getTitle())
                 .date(dto.getDate())
+                .endDate(dto.getEndDate())
                 .content(dto.getContent())
                 .notified(false)
                 .classroom(classrooms.get(0))
@@ -73,7 +74,7 @@ public class ScheduleService {
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다."));
 
-        schedule.update(dto.getTitle(), dto.getDate(), dto.getContent());
+        schedule.update(dto.getTitle(), dto.getDate(), dto.getEndDate(), dto.getContent());
     }
 
     // 일정 삭제
