@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
+
+<th:block layout:fragment="content">
+    <div>
+        <div class="mb-4">
+            <h4 class="fw-bold" style="color: var(--primary)">🌿 행사보고</h4>
+        </div>
+
+        <!-- 검색창 -->
+        <form th:action="@{/parent/event/search}" method="get" class="mb-3 d-flex gap-2">
+            <input type="text" class="form-control" name="keyword"
+                   th:value="${keyword}" placeholder="제목 또는 내용으로 검색" style="max-width: 300px;">
+            <button type="submit" class="btn btn-outline-secondary">검색</button>
+            <a th:href="@{/parent/event}" class="btn btn-outline-secondary">전체보기</a>
+        </form>
+
+
+        <div th:if="${#lists.isEmpty(eventReports)}" class="text-center text-muted py-5">
+            아직 등록된 행사보고가 없습니다.
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-3" th:each="eventReport : ${eventReports}">
+                <a th:href="@{/parent/event/{id}(id=${eventReport.id})}" class="text-decoration-none">
+                    <div class="card shadow-sm h-100">
+                        <div th:if="${not #lists.isEmpty(eventReport.photos)}">
+                            <img th:src="@{/uploads/{file}(file=${eventReport.photos[0].filePath})}"
+                                 class="card-img-top" style="height: 140px; object-fit: cover;">
+                        </div>
+                        <div th:if="${#lists.isEmpty(eventReport.photos)}"
+                             class="d-flex align-items-center justify-content-center"
+                             style="height: 140px; background-color: var(--primary-light);">
+                            <span style="font-size: 2.5rem;">🎉</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="fw-bold mb-1 text-dark" th:text="${eventReport.title}"></div>
+                            <div class="text-muted small mb-2"
+                                 th:text="${#temporals.format(eventReport.eventDate, 'yyyy.MM.dd')}"></div>
+                            <div class="text-muted small"
+                                 th:utext="${#strings.abbreviate(eventReport.content, 40)}"></div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+</html>

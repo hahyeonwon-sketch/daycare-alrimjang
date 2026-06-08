@@ -33,6 +33,7 @@ public class SecurityConfig {
                         .requestMatchers("/teacher/**").hasRole("TEACHER")
                         // PARENT Role만 접근 가능 (학부모 페이지)
                         .requestMatchers("/parent/**").hasRole("PARENT")
+                        .requestMatchers("/", "/auth/**", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
                         // 그 외 모든 요청은 로그인 필요
                         .anyRequest().authenticated()
                 )

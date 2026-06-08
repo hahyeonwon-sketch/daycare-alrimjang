@@ -9,6 +9,13 @@
             <h4 class="fw-bold" style="color: var(--primary)">🌿 공지사항</h4>
         </div>
 
+        <form th:action="@{/parent/announcement/search}" method="get" class="mb-3 d-flex gap-2">
+            <input type="text" class="form-control" name="keyword"
+                   th:value="${keyword}" placeholder="제목 또는 내용으로 검색" style="max-width: 300px;">
+            <button type="submit" class="btn btn-outline-secondary">검색</button>
+            <a th:href="@{/parent/announcement}" class="btn btn-outline-secondary">전체보기</a>
+        </form>
+
         <div th:if="${#lists.isEmpty(announcements)}" class="text-center text-muted py-5">
             아직 등록된 공지사항이 없습니다.
         </div>

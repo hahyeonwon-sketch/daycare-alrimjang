@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
+<head>
+    <th:block layout:fragment="head-extra">
+        <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    </th:block>
+</head>
+
+<th:block layout:fragment="content">
+    <div>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold" style="color: var(--primary)">🌿 행사보고</h4>
+            <button class="btn btn-primary" onclick="openAddModal()">+ 행사보고 등록</button>
+        </div>
+
+        <!-- 검색 + 기간 필터 -->
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <form th:action="@{/teacher/event/search}" method="get" class="d-flex gap-2">
+                <input type="text" class="form-control" name="keyword"
+                       th:value="${keyword}" placeholder="제목 또는 내용으로 검색" style="max-width: 250px;">
+                <button type="submit" class="btn btn-outline-secondary">검색</button>
+            </form>
+            <form th:action="@{/teacher/event/date}" method="get" class="d-flex gap-2 align-items-center">
+                <input type="date" class="form-control" name="startDate"
+                       th:value="${startDate}" style="width: 150px;">
+                <span class="text-muted">~</span>
+                <input type="date" class="form-control" name="endDate"
+                       th:value="${endDate}" style="width: 150px;">
+                <button type="submit" class="btn btn-outline-secondary">기간 조회</button>
+            </form>
+            <a th:href="@{/teacher/event}" class="btn btn-outline-secondary">전체보기</a>
+        </div>
+
+        <div th:if="${#lists.isEmpty(eventReports)}" class="text-center text-muted py-5">
+            아직 등록된 행사보고가 없습니다.
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-3" th:each="eventReport : ${eventReports}">
+                <div class="card shadow-sm h-100">
+                    <div th:if="${not #lists.isEmpty(eventReport.photos)}">
+                        <img th:src="@{/uploads/{file}(file=${eventReport.photos[0].filePath})}"
+                             class="card-img-top" style="height: 140px; object-fit: cover;">
+                    </div>
+                    <div th:if="${#lists.isEmpty(eventReport.photos)}"
+                         class="d-flex align-items-center justify-content-center"
+                         style="height: 140px; background-color: var(--primary-light);">
+                        <span style="font-size: 2.5rem;">🎉</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="fw-bold mb-1" th:text="${eventReport.title}"></div>
+                        <div class="text-muted small mb-2"
+                             th:text="${#temporals.format(eventReport.eventDate, 'yyyy.MM.dd')}"></div>
+                        <div class="text-muted small"
+                             th:utext="${#strings.abbreviate(eventReport.content, 40)}"></div>
+                    </div>
+                    <div class="card-footer d-flex gap-2 justify-content-end">
+                        <a th:href="@{/teacher/event/{id}(id=${eventReport.id})}"
+                           class="btn btn-outline-secondary btn-sm">상세</a>
+                        <form th:action="@{/teacher/event/{id}/delete(id=${eventReport.id})}" method="post" class="d-inline">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm"
+                                    onclick="return confirm('삭제하시겠습니까?')">삭제</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 행사보고 등록 모달 -->
+    <div class="modal fade" id="eventModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: var(--primary-light);">
+                    <h5 class="modal-title fw-bold">행사보고 등록</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="eventForm" th:action="@{/teacher/event/save}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">행사명</label>
+                            <input type="text" class="form-control" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">행사 날짜</label>
+                            <input type="date" class="form-control" name="eventDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">내용</label>
+                            <div id="eventEditor" style="height: 200px;"></div>
+                            <input type="hidden" name="content" id="eventContent">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">사진 업로드 (최대 5장)</label>
+                            <input type="file" class="form-control" name="photos"
+                                   multiple accept="image/*" onchange="previewPhotos(this)">
+                        </div>
+                        <div id="previewArea" class="d-none">
+                            <label class="form-label fw-bold">사진 미리보기</label>
+                            <div id="previewCarousel" class="carousel slide border rounded p-2" data-bs-ride="false">
+                                <div class="carousel-inner" id="carouselInner"></div>
+                                <button class="carousel-control-prev" type="button"
+                                        data-bs-target="#previewCarousel" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" style="filter: invert(1)"></span>
+                                </button>
+                                <button class="carousel-control-next" type="button"
+                                        data-bs-target="#previewCarousel" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" style="filter: invert(1)"></span>
+                                </button>
+                            </div>
+                            <div class="text-muted small mt-1" id="photoCount"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">취소</button>
+                        <button type="submit" class="btn btn-primary px-4 py-2">저장</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block layout:fragment="script-extra">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <script>
+        const eventQuill = new Quill('#eventEditor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    [{ 'align': [] }],
+                    [{ 'size': ['small', false, 'large', 'huge'] }],
+                    ['clean']
+                ]
+            }
+        });
+
+        function openAddModal() {
+            eventQuill.setText('');
+            document.getElementById('carouselInner').innerHTML = '';
+            document.getElementById('previewArea').classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('eventModal')).show();
+        }
+
+        document.getElementById('eventForm').addEventListener('submit', function() {
+            document.getElementById('eventContent').value = eventQuill.root.innerHTML;
+        });
+
+        function previewPhotos(input) {
+            const files = Array.from(input.files);
+            if (files.length > 5) {
+                alert('사진은 최대 5장까지 업로드 가능합니다.');
+                input.value = '';
+                return;
+            }
+
+            const carouselInner = document.getElementById('carouselInner');
+            const previewArea = document.getElementById('previewArea');
+            const photoCount = document.getElementById('photoCount');
+
+            carouselInner.innerHTML = '';
+
+            if (files.length === 0) {
+                previewArea.classList.add('d-none');
+                return;
+            }
+
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const item = document.createElement('div');
+                    item.className = 'carousel-item' + (index === 0 ? ' active' : '');
+                    item.innerHTML = `
+                    <div class="position-relative">
+                        <img src="${e.target.result}" class="d-block w-100 rounded"
+                             style="max-height: 300px; object-fit: contain; background: #f8f8f8;">
+                        <span class="position-absolute top-0 end-0 badge bg-dark m-2">
+                            ${index + 1} / ${files.length}
+                        </span>
+                    </div>`;
+                    carouselInner.appendChild(item);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            photoCount.textContent = `${files.length}장 선택됨`;
+            previewArea.classList.remove('d-none');
+        }
+    </script>
+</th:block>
+
+</html>

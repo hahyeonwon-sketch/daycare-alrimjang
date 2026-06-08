@@ -11,38 +11,36 @@
         </div>
 
         <div class="card shadow-sm mb-3">
-            <div class="card-body">
+            <div class="card-body text-center">
                 <div class="text-muted small mb-3"
                      th:text="${#temporals.format(announcement.createdAt, 'yyyy년 MM월 dd일')}"></div>
 
-                <div th:text="${announcement.content}" style="white-space: pre-wrap;"></div>
+                <div th:utext="${announcement.content}" style="white-space: pre-wrap;" class="mb-3"></div>
 
-                <div class="card shadow-sm mb-3">
-                    <div class="card-body">
-                        <div class="text-muted small mb-3"
-                             th:text="${#temporals.format(announcement.createdAt, 'yyyy년 MM월 dd일')}"></div>
-
-                        <div th:text="${announcement.content}"
-                             style="white-space: pre-wrap; text-align: center;"></div>
-
-                        <div th:if="${announcement.filePath != null}" class="mt-3 text-center">
-                            <div th:if="${#strings.contains(announcement.filePath, '.jpg') or
-                         #strings.contains(announcement.filePath, '.jpeg') or
-                         #strings.contains(announcement.filePath, '.png') or
-                         #strings.contains(announcement.filePath, '.gif')}">
-                                <img th:src="@{/uploads/{file}(file=${announcement.filePath})}"
-                                     class="img-fluid rounded mt-2" style="max-width: 100%;">
-                            </div>
-                            <div th:unless="${#strings.contains(announcement.filePath, '.jpg') or
+                <div th:if="${announcement.filePath != null}" class="mt-3">
+                    <!-- 이미지면 바로 표시 + 다운로드 버튼 -->
+                    <div th:if="${#strings.contains(announcement.filePath, '.jpg') or
                              #strings.contains(announcement.filePath, '.jpeg') or
                              #strings.contains(announcement.filePath, '.png') or
                              #strings.contains(announcement.filePath, '.gif')}">
-                                <a th:href="@{/uploads/{file}(file=${announcement.filePath})}"
-                                   class="btn btn-outline-secondary btn-sm" target="_blank">
-                                    📎 첨부파일 보기
-                                </a>
-                            </div>
+                        <img th:src="@{/uploads/{file}(file=${announcement.filePath})}"
+                             class="img-fluid rounded mt-2" style="max-width: 100%;">
+                        <div class="mt-2">
+                            <a th:href="@{/download/{file}(file=${announcement.filePath})}"
+                               class="btn btn-outline-secondary btn-sm">
+                                📥 사진 다운로드
+                            </a>
                         </div>
+                    </div>
+                    <!-- PDF면 링크로 표시 -->
+                    <div th:unless="${#strings.contains(announcement.filePath, '.jpg') or
+                                 #strings.contains(announcement.filePath, '.jpeg') or
+                                 #strings.contains(announcement.filePath, '.png') or
+                                 #strings.contains(announcement.filePath, '.gif')}">
+                        <a th:href="@{/uploads/{file}(file=${announcement.filePath})}"
+                           class="btn btn-outline-secondary btn-sm" target="_blank">
+                            📎 첨부파일 보기
+                        </a>
                     </div>
                 </div>
             </div>

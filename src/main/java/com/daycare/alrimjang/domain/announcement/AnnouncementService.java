@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -115,5 +116,44 @@ public class AnnouncementService {
     @Transactional
     public void deleteAnnouncement(Long id) {
         announcementRepository.deleteById(id);
+    }
+
+    // 교사 - 공지사항 검색
+    @Transactional(readOnly = true)
+    public List<Announcement> searchTeacherAnnouncement(String email, String keyword) {
+        User teacher = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 교사입니다."));
+
+        List<Classroom> classrooms = classroomRepository.findByTeacherId(teacher.getId());
+        if (classrooms.isEmpty()) return List.of();
+
+        return announcementRepository.searchByKeyword(classrooms.get(0).getId(), keyword);
+    }
+
+    // 학부모 - 공지사항 검색
+    @Transactional(readOnly = true)
+    public List<Announcement> searchParentAnnouncement(String email, String keyword) {
+        User parent = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 학부모입니다."));
+
+        Classroom classroom = classroomRepository.findByParentId(parent.getId())
+                .orElseThrow(() -> new IllegalArgumentException("소속 반이 없습니다."));
+
+        return announcementRepository.searchByKeyword(classroom.getId(), keyword);
+    }
+
+    // 교사 - 기간별 조회
+    @Transactional(readOnly = true)
+    public List<Announcement> getTeacherAnnouncementByDate(String email, LocalDate startDate, LocalDate endDate) {
+        User teacher = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 교사입니다."));
+
+        List<Classroom> classrooms = classroomRepository.findByTeacherId(teacher.getId());
+        if (classrooms.isEmpty()) return List.of();
+
+        return announcementRepository.findByClassroomIdAndDateBetween(
+                classrooms.get(0).getId(),
+                startDate.atStartOfDay(),
+                endDate.plusDays(1).atStartOfDay());
     }
 }
