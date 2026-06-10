@@ -1,14 +1,16 @@
 package com.daycare.alrimjang.domain.announcement;
 
+import com.daycare.alrimjang.domain.child.Child;
+import com.daycare.alrimjang.domain.child.ChildRepository;
 import com.daycare.alrimjang.domain.classroom.Classroom;
 import com.daycare.alrimjang.domain.classroom.ClassroomRepository;
 import com.daycare.alrimjang.domain.user.User;
 import com.daycare.alrimjang.domain.user.UserRepository;
+import com.daycare.alrimjang.global.mail.MailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,7 +26,9 @@ public class AnnouncementService {
 
     private final AnnouncementRepository announcementRepository;
     private final ClassroomRepository classroomRepository;
+    private final ChildRepository childRepository;
     private final UserRepository userRepository;
+    private final MailService mailService;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -69,7 +73,6 @@ public class AnnouncementService {
         List<Classroom> classrooms = classroomRepository.findByTeacherId(teacher.getId());
         if (classrooms.isEmpty()) throw new IllegalArgumentException("담당 반이 없습니다.");
 
-        // 파일 업로드 처리
         String filePath = null;
         if (dto.getFile() != null && !dto.getFile().isEmpty()) {
             Path uploadPath = Paths.get(System.getProperty("user.dir"), uploadDir);
@@ -90,6 +93,16 @@ public class AnnouncementService {
                 .build();
 
         announcementRepository.save(announcement);
+
+        // 반 학부모들에게 공지사항 등록 메일 발송
+        List<Child> children = childRepository.findByClassroomId(classrooms.get(0).getId());
+        for (Child child : children) {
+            for (User parent : child.getParents()) {
+                if (parent.isEmailNotification()) {
+                    mailService.sendAnnouncementMail(parent.getEmail(), parent.getName(), dto.getTitle());
+                }
+            }
+        }
     }
 
     // 공지사항 수정

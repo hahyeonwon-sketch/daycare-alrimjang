@@ -1,9 +1,12 @@
 package com.daycare.alrimjang.domain.eventreport;
 
+import com.daycare.alrimjang.domain.child.Child;
+import com.daycare.alrimjang.domain.child.ChildRepository;
 import com.daycare.alrimjang.domain.classroom.Classroom;
 import com.daycare.alrimjang.domain.classroom.ClassroomRepository;
 import com.daycare.alrimjang.domain.user.User;
 import com.daycare.alrimjang.domain.user.UserRepository;
+import com.daycare.alrimjang.global.mail.MailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -16,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -25,7 +29,9 @@ public class EventReportService {
     private final EventReportRepository eventReportRepository;
     private final EventPhotoRepository eventPhotoRepository;
     private final ClassroomRepository classroomRepository;
+    private final ChildRepository childRepository;
     private final UserRepository userRepository;
+    private final MailService mailService;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -98,15 +104,44 @@ public class EventReportService {
                 }
             }
         }
+
+        // 반 학부모들에게 행사보고 등록 메일 발송
+        List<Child> children = childRepository.findByClassroomId(classrooms.get(0).getId());
+        for (Child child : children) {
+            for (User parent : child.getParents()) {
+                if (parent.isEmailNotification()) {
+                    mailService.sendEventReportMail(parent.getEmail(), parent.getName(), dto.getTitle());
+                }
+            }
+        }
     }
 
     // 행사보고 수정
     @Transactional
-    public void updateEventReport(Long id, EventReportRequestDto dto) {
+    public void updateEventReport(Long id, EventReportRequestDto dto) throws IOException {
         EventReport eventReport = eventReportRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 행사보고입니다."));
 
         eventReport.update(dto.getTitle(), dto.getEventDate(), dto.getContent());
+
+        // 새 사진 추가
+        if (dto.getPhotos() != null) {
+            for (MultipartFile photo : dto.getPhotos()) {
+                if (!photo.isEmpty()) {
+                    Path uploadPath = Paths.get(System.getProperty("user.dir"), uploadDir);
+                    if (!Files.exists(uploadPath)) {
+                        Files.createDirectories(uploadPath);
+                    }
+                    String fileName = UUID.randomUUID() + "_" + photo.getOriginalFilename();
+                    Files.copy(photo.getInputStream(), uploadPath.resolve(fileName));
+
+                    eventPhotoRepository.save(EventPhoto.builder()
+                            .filePath(fileName)
+                            .eventReport(eventReport)
+                            .build());
+                }
+            }
+        }
     }
 
     // 행사보고 삭제

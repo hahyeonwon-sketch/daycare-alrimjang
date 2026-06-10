@@ -6,6 +6,7 @@ import com.daycare.alrimjang.domain.classroom.Classroom;
 import com.daycare.alrimjang.domain.classroom.ClassroomRepository;
 import com.daycare.alrimjang.domain.user.User;
 import com.daycare.alrimjang.domain.user.UserRepository;
+import com.daycare.alrimjang.global.mail.MailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class NoticeService {
     private final NoticePhotoRepository noticePhotoRepository;
     private final NoticeReadRepository noticeReadRepository;
     private final NoticeReplyRepository noticeReplyRepository;
+    private final MailService mailService;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -68,6 +70,8 @@ public class NoticeService {
 
         Notice notice = noticeRepository.findByChildIdAndDate(child.getId(), dto.getDate())
                 .orElse(null);
+
+        boolean isNew = (notice == null);
 
         if (notice != null) {
             notice.update(dto.getMeal(), dto.getPlay(), dto.getToilet(),
@@ -107,6 +111,19 @@ public class NoticeService {
                 }
             }
         }
+
+        // 신규 알림장 작성 시 학부모에게 메일 발송
+        if (isNew) {
+            for (User parent : child.getParents()) {
+                if (parent.isEmailNotification()) {
+                    mailService.sendNoticeMail(
+                            parent.getEmail(),
+                            parent.getName(),
+                            dto.getDate().toString()
+                    );
+                }
+            }
+        }
     }
 
     // 학부모용 - 본인 아이 알림장 목록 조회
@@ -132,7 +149,6 @@ public class NoticeService {
         Notice notice = noticeRepository.findById(noticeId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 알림장입니다."));
 
-        // 읽음 처리
         if (notice.getNoticeRead() == null) {
             NoticeRead noticeRead = NoticeRead.builder()
                     .notice(notice)

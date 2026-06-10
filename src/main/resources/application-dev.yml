@@ -16,6 +16,17 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 50MB
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: (테스트 Gmail 주소)
+    password: (16자리 앱 비밀번호)
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 server:
   servlet:

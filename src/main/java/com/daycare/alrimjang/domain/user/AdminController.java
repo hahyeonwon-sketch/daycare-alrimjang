@@ -6,6 +6,7 @@ import com.daycare.alrimjang.domain.classroom.Classroom;
 import com.daycare.alrimjang.domain.classroom.ClassroomRepository;
 import com.daycare.alrimjang.domain.classroom.ClassroomTeacher;
 import com.daycare.alrimjang.domain.classroom.ClassroomTeacherRepository;
+import com.daycare.alrimjang.global.mail.MailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -24,6 +25,7 @@ public class AdminController {
     private final ClassroomRepository classroomRepository;
     private final ClassroomTeacherRepository classroomTeacherRepository;
     private final ChildRepository childRepository;
+    private final MailService mailService;
 
     // 관리자 대시보드
     @GetMapping("/dashboard")
@@ -47,6 +49,11 @@ public class AdminController {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
         user.updateStatus(User.Status.ACTIVE);
         userRepository.save(user);
+
+        if (user.isEmailNotification()) {
+            mailService.sendApprovalMail(user.getEmail(), user.getName());
+        }
+
         return "redirect:/admin/parent";
     }
 
