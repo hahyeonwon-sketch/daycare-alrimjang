@@ -14,9 +14,88 @@
 - MySQL
 - JavaMailSender
 - Gradle
-- AWS EC2
+- AWS EC2 + RDS
 
 ---
+
+## 사용자 역할
+| Role | 계정 생성 방식 | 설명 |
+|------|-------------|------|
+| ADMIN | 서버 최초 실행 시 환경변수로 자동 생성 | 원장. 반/교사/원아/학부모 전체 관리 |
+| TEACHER | ADMIN이 직접 생성 | 알림장·공지·일정·행사보고 작성 |
+| PARENT | 직접 회원가입 → ADMIN 승인 | 조회·메모·사진업로드·답장 |
+
+`User.status`: PENDING / ACTIVE / REJECTED / INACTIVE
+
+---
+
+## 주요 도메인
+- **User**: 모든 계정 통합 관리 (role, status, emailNotification, requestedChildName, requestedClassName)
+- **Classroom**: 반 (N:M Teacher via ClassroomTeacher)
+- **Child**: 원아 (1:1 Parent, 1:N Notice)
+- **Notice**: 알림장 (1:N NoticePhoto, 1:1 NoticeRead, 1:N NoticeReply)
+- **ParentMemo**: 학부모 등원 전 메모 (하루 1개, 1:N ParentMemoPhoto)
+- **Schedule**: 일정 (notified 컬럼으로 중복 알림 방지)
+- **Announcement**: 공지사항
+- **EventReport**: 행사보고 (1:N EventPhoto)
+
+---
+
+## 패키지 구조
+```
+src/main/java/com/daycare/alrimjang/
+├── domain/
+
+│   ├── user/
+
+│   ├── classroom/
+
+│   ├── child/
+
+│   ├── notice/
+
+│   ├── parentmemo/
+
+│   ├── schedule/
+
+│   ├── announcement/
+
+│   └── eventreport/
+├── global/
+
+│   ├── config/         # SecurityConfig 등
+
+│   ├── exception/      # GlobalExceptionHandler
+
+│   └── mail/           # JavaMailSender
+└── AlrimjangApplication.java
+```
+
+---
+
+## 핵심 구현 포인트
+1. **사진 슬라이드 미리보기**: 교사가 사진 업로드 시 즉시 슬라이드 형태로 미리보기 제공 (핵심 기획 의도)
+2. **학부모 승인 플로우**: 가입 → PENDING → ADMIN 승인 → ACTIVE
+3. **이메일 알림**: 알림장 등록, 공지사항 등록, 일정 전날 오후 6시 (`@Scheduled`)
+4. **역할별 접근 제어**: Spring Security로 `/admin/**`, `/teacher/**`, `/parent/**` URL 분리
+5. **ParentMemo**: 하루 1개 제한 (없으면 생성, 있으면 수정)
+6. **전역 예외 처리**: `@ControllerAdvice`로 `IllegalArgumentException` → 400, 그 외 → 500 에러 페이지 처리
+
+---
+
+## 이메일 알림 발송 시점
+| 시점 | 수신자 |
+|------|--------|
+| 알림장 등록 | 해당 원아 학부모 |
+| 공지사항 등록 | 소속 반 학부모 전체 |
+| 일정 전날 오후 6시 | 소속 반 학부모 전체 |
+| 학부모 승인/거절 | 해당 학부모 |
+| 교사 계정 생성 | 해당 교사 |
+
+※ `emailNotification = true` 인 경우에만 발송
+
+---
+
 ## 기술 선택 이유
 
 ### Spring Security — 역할 기반 접근 제어
@@ -40,7 +119,6 @@ Quill 에디터가 굵게·색상 등 서식을 HTML 태그로 저장하므로, 
 클라이언트 사이드 방어는 우회 가능성이 있어 서버 사이드 검증을 원칙으로 삼았습니다.
 
 ### 프로파일 분리 (prod / local) — 환경 분리 전략
-로컬 개발 환경과 운영 환경의 설정이 다르기 때문에 프로파일을 분리했습니다.
 - `local`: H2 인메모리 DB, `show-sql: true`, DataInitializer로 테스트 데이터 자동 생성
 - `prod`: RDS MySQL, `show-sql: false`, `ddl-auto: validate`, 환경변수로 민감정보 관리
 
@@ -48,93 +126,10 @@ Quill 에디터가 굵게·색상 등 서식을 HTML 태그로 저장하므로, 
 `ProdAdminInitializer`를 별도로 만들어 운영 환경에서는 환경변수(`ADMIN_PASSWORD`)로만 admin 계정을 생성하도록 구성했습니다.
 
 ### AWS EC2 + RDS — 배포 환경 선택
-포트폴리오 프로젝트를 실제로 접속 가능한 URL로 제공하기 위해 AWS를 선택했습니다.
 Heroku, Railway 등 PaaS도 고려했지만, EC2 + RDS 조합을 선택한 이유는 다음과 같습니다.
-
 - 실무에서 가장 많이 사용되는 인프라 환경을 직접 경험하기 위해
 - 보안 그룹, 인바운드 규칙, 프리티어 인스턴스 설정 등 인프라 레벨의 이해를 높이기 위해
 - RDS를 EC2와 분리해 DB 서버를 독립적으로 관리하는 구조를 경험하기 위해
-
-운영/개발 프로파일을 분리하고 민감정보를 환경변수로 관리해
-로컬과 운영 환경의 설정을 완전히 분리했습니다.
-
----
-
-## 사용자 역할
-| Role | 계정 생성 방식 | 설명 |
-|------|-------------|------|
-| ADMIN | 최초 하드코딩 1계정 | 원장. 반/교사/원아/학부모 전체 관리 |
-| TEACHER | ADMIN이 직접 생성 | 알림장·공지·일정·행사보고 작성 |
-| PARENT | 직접 회원가입 → ADMIN 승인 | 조회·메모·사진업로드·답장 |
-
-`User.status`: PENDING / ACTIVE / REJECTED / INACTIVE
-
----
-
-## 주요 도메인
-- **User**: 모든 계정 통합 관리 (role, status, emailNotification, requestedChildName, requestedClassName)
-- **Classroom**: 반 (N:M Teacher via ClassroomTeacher)
-- **Child**: 원아 (1:1 Parent, 1:N Notice)
-- **Notice**: 알림장 (1:N NoticePhoto, 1:1 NoticeRead, 1:N NoticeReply)
-- **ParentMemo**: 학부모 등원 전 메모 (하루 1개, 1:N ParentMemoPhoto)
-- **Schedule**: 일정 (notified 컬럼으로 중복 알림 방지)
-- **Announcement**: 공지사항
-- **EventReport**: 행사보고 (1:N EventPhoto)
-
----
-
-## 패키지 구조
-```
-src/main/java/com/daycare/alrimjang/
-
-├── domain/
-
-│   ├── user/
-
-│   ├── classroom/
-
-│   ├── child/
-
-│   ├── notice/
-
-│   ├── parentmemo/
-
-│   ├── schedule/
-
-│   ├── announcement/
-
-│   └── eventreport/
-
-├── global/
-
-│   ├── config/         # SecurityConfig 등
-
-│   └── mail/           # JavaMailSender
-
-└── AlrimjangApplication.java
-```
-
----
-
-## 핵심 구현 포인트
-1. **사진 슬라이드 미리보기**: 교사가 사진 업로드 시 즉시 슬라이드 형태로 미리보기 제공 (핵심 기획 의도)
-2. **학부모 승인 플로우**: 가입 → PENDING → ADMIN 승인 → ACTIVE
-3. **이메일 알림**: 알림장 등록, 공지사항 등록, 일정 전날 오후 6시 (`@Scheduled`)
-4. **역할별 접근 제어**: Spring Security로 `/admin/**`, `/teacher/**`, `/parent/**` URL 분리
-5. **ParentMemo**: 하루 1개 제한 (없으면 생성, 있으면 수정)
-
----
-
-## 이메일 알림 발송 시점
-| 시점 | 수신자 |
-|------|--------|
-| 알림장 등록 | 해당 원아 학부모 |
-| 공지사항 등록 | 소속 반 학부모 전체 |
-| 일정 전날 오후 6시 | 소속 반 학부모 전체 |
-| 학부모 승인/거절 | 해당 학부모 |
-| 교사 계정 생성 | 해당 교사 |
-
-※ `emailNotification = true` 인 경우에만 발송
 
 ---
 
@@ -190,5 +185,17 @@ Quill 에디터가 굵게·색상 등 서식을 HTML 태그로 저장하므로, 
 ### 3. 서비스 반환 타입 변경 시 누락된 컨트롤러
 `NotificationService.getNotifications()`의 반환 타입을 `List<Notification>` → `List<NotificationResponseDto>`로 변경했을 때, `NotificationPageController`가 여전히 구 타입으로 받고 있어 컴파일 에러 발생.
 IDE의 Find Usages로 해당 서비스를 사용하는 모든 클래스를 파악한 뒤 일괄 수정하여 해결.
+
+### 4. git 히스토리 민감정보 노출 및 제거
+`application-local.yml`에 DB 비밀번호가 하드코딩된 채로 커밋되어 GitHub 히스토리에 노출됨.
+`.gitignore`에 추가했어도 이미 추적된 파일은 소급 적용되지 않아 과거 커밋에 비밀번호가 그대로 남아 있었음.
+`git filter-branch`로 전체 브랜치 히스토리에서 해당 파일 제거 후 force push.
+이후 `application-local.yml`을 완전히 환경변수 방식(`${DB_PASSWORD}`)으로 전환하고 기본값 제거.
+
+### 5. prod 환경 최초 배포 시 Schema Validation 실패
+`ddl-auto: validate` 설정으로 인해 신규 RDS에 테이블이 없는 상태에서 앱 실행 시
+`SchemaManagementException: missing table [announcements]` 에러 발생.
+최초 1회만 `--spring.jpa.hibernate.ddl-auto=update` 옵션으로 실행해 테이블 자동 생성.
+이후 정상 실행 시에는 `validate`로 복귀해 스키마 무결성 검증.
 
 👉 [상세 내용 GitHub Issues 바로가기](https://github.com/hahyeonwon-sketch/daycare-alrimjang/issues)
