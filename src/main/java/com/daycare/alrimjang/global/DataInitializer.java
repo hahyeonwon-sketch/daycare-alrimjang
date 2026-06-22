@@ -11,6 +11,7 @@ import com.daycare.alrimjang.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+@Profile({"local", "dev"})  // ✅ prod에서는 실행 안 됨
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements ApplicationRunner {
@@ -76,18 +78,9 @@ public class DataInitializer implements ApplicationRunner {
 
         // 테스트용 원아 생성
         if (childRepository.count() == 0) {
-            childRepository.save(Child.builder()
-                    .name("김하늘")
-                    .classroom(classroom)
-                    .build());
-            childRepository.save(Child.builder()
-                    .name("이민준")
-                    .classroom(classroom)
-                    .build());
-            childRepository.save(Child.builder()
-                    .name("박서연")
-                    .classroom(classroom)
-                    .build());
+            childRepository.save(Child.builder().name("김하늘").classroom(classroom).build());
+            childRepository.save(Child.builder().name("이민준").classroom(classroom).build());
+            childRepository.save(Child.builder().name("박서연").classroom(classroom).build());
             System.out.println("테스트 원아 3명 생성 완료");
         }
 
@@ -109,7 +102,6 @@ public class DataInitializer implements ApplicationRunner {
             }
             System.out.println("학부모 계정 생성 완료 - 원아 연결 완료");
         } else {
-            // 이미 연결된 경우 스킵
             User parent = userRepository.findByEmail("parent@daycare.com").get();
             Optional<Child> existingChild = childRepository.findByParentId(parent.getId());
             if (existingChild.isEmpty()) {

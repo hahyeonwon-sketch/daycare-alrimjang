@@ -1,6 +1,4 @@
 // SecurityConfig.java
-// 변경: /uploads/** permitAll → authenticated() (prod·dev 둘 다)
-//       /download/** 제거 (사용 안 함)
 package com.daycare.alrimjang.global.config;
 
 import com.daycare.alrimjang.domain.user.CustomUserDetailsService;
@@ -31,9 +29,9 @@ public class SecurityConfig {
     public SecurityFilterChain prodFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/auth/**", "/css/**", "/js/**", "/images/**",
-                                "/sse/**").permitAll()
-                        .requestMatchers("/uploads/**").authenticated()  // ✅ 인증 필요로 변경
+                        .requestMatchers("/", "/auth/**", "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/sse/**").authenticated()          // ✅ 인증 필요 (NPE 방지)
+                        .requestMatchers("/uploads/**").authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/teacher/**").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers("/parent/**").hasRole("PARENT")
@@ -67,9 +65,9 @@ public class SecurityConfig {
     public SecurityFilterChain devFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/auth/**", "/css/**", "/js/**", "/images/**",
-                                "/sse/**").permitAll()
-                        .requestMatchers("/uploads/**").authenticated()  // ✅ 인증 필요로 변경
+                        .requestMatchers("/", "/auth/**", "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/sse/**").authenticated()          // ✅ 인증 필요 (NPE 방지)
+                        .requestMatchers("/uploads/**").authenticated()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/teacher/**").hasAnyRole("TEACHER", "ADMIN")
