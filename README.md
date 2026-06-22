@@ -122,9 +122,9 @@ src/main/java/com/daycare/alrimjang/
 ## 테스트 계정
 | Role | ID | PW |
 |------|----|----|
-| ADMIN | admin@test.com | test1234 |
-| TEACHER | teacher@test.com | test1234 |
-| PARENT | parent@test.com | test1234 |
+| ADMIN | admin@daycare.com | ekfekf4820! |
+| TEACHER | teacher@test.com | teacher1234 |
+| PARENT | parent@test.com | parent1234 |
 ---
 
   ## 트러블슈팅
