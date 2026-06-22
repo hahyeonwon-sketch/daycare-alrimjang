@@ -31,6 +31,9 @@ public class AdminController {
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         model.addAttribute("pendingCount", userRepository.countByStatus(User.Status.PENDING));
+        model.addAttribute("teacherCount", userRepository.countByRole(User.Role.TEACHER));
+        model.addAttribute("parentCount", userRepository.countByStatusAndRole(User.Status.ACTIVE, User.Role.PARENT));
+        model.addAttribute("childCount", childRepository.count());
         return "admin/dashboard";
     }
 
