@@ -17,6 +17,48 @@
 - AWS EC2
 
 ---
+## 기술 선택 이유
+
+### Spring Security — 역할 기반 접근 제어
+ADMIN / TEACHER / PARENT 3가지 역할이 각각 다른 페이지와 기능에 접근해야 하는 구조였습니다.
+URL 레벨에서 `/admin/**`, `/teacher/**`, `/parent/**`로 접근을 분리하고,
+서비스 레이어에서 추가 권한 검증을 수행해 이중으로 보호했습니다.
+Spring Security를 선택한 이유는 세션 고정 공격 방지(`migrateSession`), CSRF 토큰, 비밀번호 암호화(BCrypt)를
+별도 구현 없이 통합적으로 처리할 수 있기 때문입니다.
+
+### SSE (Server-Sent Events) vs WebSocket — 실시간 알림
+알림장 등록, 공지사항 등록 시 학부모에게 실시간 알림을 보내야 했습니다.
+WebSocket은 양방향 통신이 필요한 채팅 등에 적합하지만, 이 서비스의 알림은 **서버 → 클라이언트 단방향**이므로
+SSE가 더 적합하다고 판단했습니다.
+SSE는 HTTP 기반으로 별도 프로토콜 업그레이드 없이 동작하고, Spring에서 `SseEmitter`로 간단히 구현할 수 있어 선택했습니다.
+동시 접속 처리를 위해 `ConcurrentHashMap`으로 이메일 키 기반 연결을 관리했습니다.
+
+### Jsoup Sanitize — XSS 방어
+Quill 에디터가 굵게·색상 등 서식을 HTML 태그로 저장하므로, `th:text`로 교체하면 서식이 깨지는 문제가 있었습니다.
+렌더링 방식을 바꾸는 대신 **저장 시점**에 Jsoup `Safelist`로 서버 사이드 sanitize를 적용해
+위험 태그(`<script>`, `on*=` 등)만 제거하는 방식을 선택했습니다.
+클라이언트 사이드 방어는 우회 가능성이 있어 서버 사이드 검증을 원칙으로 삼았습니다.
+
+### 프로파일 분리 (prod / local) — 환경 분리 전략
+로컬 개발 환경과 운영 환경의 설정이 다르기 때문에 프로파일을 분리했습니다.
+- `local`: H2 인메모리 DB, `show-sql: true`, DataInitializer로 테스트 데이터 자동 생성
+- `prod`: RDS MySQL, `show-sql: false`, `ddl-auto: validate`, 환경변수로 민감정보 관리
+
+`DataInitializer`에 `@Profile({"local", "dev"})`를 적용해 운영 환경에서 테스트 계정이 생성되지 않도록 했고,
+`ProdAdminInitializer`를 별도로 만들어 운영 환경에서는 환경변수(`ADMIN_PASSWORD`)로만 admin 계정을 생성하도록 구성했습니다.
+
+### AWS EC2 + RDS — 배포 환경 선택
+포트폴리오 프로젝트를 실제로 접속 가능한 URL로 제공하기 위해 AWS를 선택했습니다.
+Heroku, Railway 등 PaaS도 고려했지만, EC2 + RDS 조합을 선택한 이유는 다음과 같습니다.
+
+- 실무에서 가장 많이 사용되는 인프라 환경을 직접 경험하기 위해
+- 보안 그룹, 인바운드 규칙, 프리티어 인스턴스 설정 등 인프라 레벨의 이해를 높이기 위해
+- RDS를 EC2와 분리해 DB 서버를 독립적으로 관리하는 구조를 경험하기 위해
+
+운영/개발 프로파일을 분리하고 민감정보를 환경변수로 관리해
+로컬과 운영 환경의 설정을 완전히 분리했습니다.
+
+---
 
 ## 사용자 역할
 | Role | 계정 생성 방식 | 설명 |
