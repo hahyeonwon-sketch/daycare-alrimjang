@@ -18,7 +18,7 @@ markdown# daycare-alrimjang
 - MySQL
 - JavaMailSender
 - Gradle
-
+- AWS EC2
 ---
 
 ## 사용자 역할
