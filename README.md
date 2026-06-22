@@ -119,6 +119,13 @@ src/main/java/com/daycare/alrimjang/
 - 운영/개발 프로파일 분리 (application-prod.yml / application-dev.yml)
 
 ---
+## 테스트 계정
+| Role | ID | PW |
+|------|----|----|
+| ADMIN | admin@test.com | test1234 |
+| TEACHER | teacher@test.com | test1234 |
+| PARENT | parent@test.com | test1234 |
+---
 
   ## 트러블슈팅
 👉 [GitHub Issues 바로가기](https://github.com/hahyeonwon-sketch/daycare-alrimjang/issues)
