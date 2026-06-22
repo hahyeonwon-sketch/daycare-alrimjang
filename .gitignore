@@ -35,3 +35,7 @@ build/
 application-local.yml
 application-dev.yml
 application-prod.yml
+
+# 업로드 파일 및 로컬 DB
+uploads/
+data/
