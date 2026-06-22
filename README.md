@@ -129,7 +129,7 @@ src/main/java/com/daycare/alrimjang/
 ## 테스트 계정
 | Role | ID | PW |
 |------|----|----|
-| ADMIN | admin@daycare.com | (문의) |
+| ADMIN | admin@daycare.com | (포트폴리오 참고) |
 | TEACHER | teacher@test.com | teacher1234 |
 | PARENT | parent@test.com | parent1234 |
 
