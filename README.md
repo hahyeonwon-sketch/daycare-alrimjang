@@ -117,3 +117,8 @@ src/main/java/com/daycare/alrimjang/
 - Spring Boot jar 직접 실행
 - 환경변수로 DB 접속 정보 및 민감 정보 관리 (.env)
 - 운영/개발 프로파일 분리 (application-prod.yml / application-dev.yml)
+
+---
+
+  ## 트러블슈팅
+👉 [GitHub Issues 바로가기](https://github.com/hahyeonwon-sketch/daycare-alrimjang/issues)
