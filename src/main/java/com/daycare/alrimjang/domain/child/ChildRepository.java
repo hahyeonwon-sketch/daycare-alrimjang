@@ -1,3 +1,5 @@
+// ChildRepository.java
+// 변경: findByClassroomId에 @EntityGraph(parents) 추가 → 알림 발송 루프 N+1 방지
 package com.daycare.alrimjang.domain.child;
 
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -10,15 +12,14 @@ import java.util.Optional;
 
 public interface ChildRepository extends JpaRepository<Child, Long> {
 
-    // 반 ID로 원아 목록 조회
+    // ✅ parents 함께 로딩 (ScheduleNotificationService·NoticeService 루프 N+1 방지)
+    @EntityGraph(attributePaths = {"parents"})
     List<Child> findByClassroomId(Long classroomId);
 
-    // 학부모 ID로 원아 조회 (N:M)
     @EntityGraph(attributePaths = {"classroom"})
     @Query("SELECT c FROM Child c JOIN c.parents p WHERE p.id = :parentId")
     Optional<Child> findByParentId(@Param("parentId") Long parentId);
 
-    // 전체 조회 - classroom, parents 같이 로딩
     @Override
     @EntityGraph(attributePaths = {"classroom", "parents"})
     List<Child> findAll();

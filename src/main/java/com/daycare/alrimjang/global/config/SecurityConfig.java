@@ -1,3 +1,6 @@
+// SecurityConfig.java
+// 변경: /uploads/** permitAll → authenticated() (prod·dev 둘 다)
+//       /download/** 제거 (사용 안 함)
 package com.daycare.alrimjang.global.config;
 
 import com.daycare.alrimjang.domain.user.CustomUserDetailsService;
@@ -23,16 +26,14 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final LoginSuccessHandler loginSuccessHandler;
 
-    /**
-     * [운영 프로필] H2 콘솔 없이 엄격하게 잠근다.
-     */
     @Bean
     @Profile("prod")
     public SecurityFilterChain prodFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/auth/**", "/css/**", "/js/**", "/images/**",
-                                "/download/**", "/uploads/**", "/sse/**").permitAll()
+                                "/sse/**").permitAll()
+                        .requestMatchers("/uploads/**").authenticated()  // ✅ 인증 필요로 변경
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/teacher/**").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers("/parent/**").hasRole("PARENT")
@@ -61,17 +62,15 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * [로컬·개발 프로필] H2 콘솔 접근 허용.
-     */
     @Bean
     @Profile({"local", "dev"})
     public SecurityFilterChain devFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/auth/**", "/css/**", "/js/**", "/images/**",
-                                "/download/**", "/uploads/**", "/sse/**").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()  // h2 먼저!
+                                "/sse/**").permitAll()
+                        .requestMatchers("/uploads/**").authenticated()  // ✅ 인증 필요로 변경
+                        .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/teacher/**").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers("/parent/**").hasRole("PARENT")

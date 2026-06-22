@@ -1,14 +1,22 @@
+// NotificationRepository.java
+// 변경: @Modifying 벌크 UPDATE 쿼리 추가
 package com.daycare.alrimjang.domain.notification;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface NotificationRepository extends JpaRepository<com.daycare.alrimjang.domain.notification.Notification, Long> {
+public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    // 사용자별 알림 목록 조회 (최신순)
-    List<com.daycare.alrimjang.domain.notification.Notification> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Notification> findByUserIdOrderByCreatedAtDesc(Long userId);
 
-    // 읽지 않은 알림 개수
     long countByUserIdAndIsReadFalse(Long userId);
+
+    // ✅ 벌크 UPDATE - 기존: 알림 N개 → N번 UPDATE / 변경 후: 1번 UPDATE
+    @Modifying
+    @Query("UPDATE Notification n SET n.isRead = true WHERE n.user.id = :userId AND n.isRead = false")
+    void markAllAsReadByUserId(@Param("userId") Long userId);
 }

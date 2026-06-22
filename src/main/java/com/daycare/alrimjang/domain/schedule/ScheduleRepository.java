@@ -1,15 +1,19 @@
+// ScheduleRepository.java
+// 변경: findByDateAndNotifiedFalse → JOIN FETCH로 classroom 한 번에 로딩 (N+1 방지)
 package com.daycare.alrimjang.domain.schedule;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
 
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
-    // 반 ID로 일정 목록 조회
     List<Schedule> findByClassroomId(Long classroomId);
 
-    // 전날 알림 발송용 - 내일 날짜 + 미발송 일정 조회
-    List<Schedule> findByDateAndNotifiedFalse(LocalDate date);
+    // ✅ JOIN FETCH로 classroom 즉시 로딩 → 루프 안 LAZY 쿼리 제거
+    @Query("SELECT s FROM Schedule s JOIN FETCH s.classroom WHERE s.date = :date AND s.notified = false")
+    List<Schedule> findByDateAndNotifiedFalse(@Param("date") LocalDate date);
 }

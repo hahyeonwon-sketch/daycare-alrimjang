@@ -1,7 +1,11 @@
+// NoticeRepository.java
+// 변경: 반 단위 날짜별 일괄 조회 쿼리 추가 (getNoticeList N+1 방지)
 package com.daycare.alrimjang.domain.notice;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -9,11 +13,13 @@ import java.util.Optional;
 
 public interface NoticeRepository extends JpaRepository<Notice, Long> {
 
-    // 특정 날짜의 반 전체 알림장 조회 (교사 목록 페이지)
     List<Notice> findByChild_Classroom_IdAndDate(Long classroomId, LocalDate date);
 
-    // 학부모용 - 특정 원아 알림장 전체 조회 (최신순)
     List<Notice> findByChildIdOrderByDateDesc(Long childId);
+
+    // ✅ 반 전체 원아의 특정 날짜 알림장을 한 번에 조회
+    @Query("SELECT n FROM Notice n WHERE n.child.classroom.id = :classroomId AND n.date = :date")
+    List<Notice> findAllByClassroomIdAndDate(@Param("classroomId") Long classroomId, @Param("date") LocalDate date);
 
     List<Notice> findAllByChildIdAndDate(Long childId, LocalDate date);
 

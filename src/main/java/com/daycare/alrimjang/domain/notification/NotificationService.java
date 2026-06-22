@@ -1,3 +1,5 @@
+// NotificationService.java
+// 변경: markAllAsRead() → 벌크 UPDATE 호출로 교체, 불필요한 목록 조회 제거
 package com.daycare.alrimjang.domain.notification;
 
 import com.daycare.alrimjang.domain.user.User;
@@ -16,7 +18,6 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
 
-    // 알림 저장 + SSE 전송
     @Transactional
     public void sendNotification(User user, String message) {
         Notification notification = Notification.builder()
@@ -26,11 +27,9 @@ public class NotificationService {
                 .build();
         notificationRepository.save(notification);
 
-        // SSE 실시간 전송
         SseController.sendNotification(user.getEmail(), message);
     }
 
-    // 알림 목록 조회 - 엔티티 직접 반환 시 password 해시 노출 위험이 있어 DTO로 변환
     @Transactional(readOnly = true)
     public List<NotificationResponseDto> getNotifications(Long userId) {
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
@@ -38,13 +37,11 @@ public class NotificationService {
                 .toList();
     }
 
-    // 읽지 않은 알림 개수
     @Transactional(readOnly = true)
     public long getUnreadCount(Long userId) {
         return notificationRepository.countByUserIdAndIsReadFalse(userId);
     }
 
-    // 알림 읽음 처리 (본인 알림인지 검증)
     @Transactional
     public void markAsRead(String email, Long notificationId) {
         User user = userRepository.findByEmail(email)
@@ -60,10 +57,9 @@ public class NotificationService {
         notification.markAsRead();
     }
 
-    // 전체 읽음 처리
+    // ✅ 목록 조회 후 루프 → 벌크 UPDATE 1번으로 교체
     @Transactional
     public void markAllAsRead(Long userId) {
-        List<Notification> notifications = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        notifications.forEach(Notification::markAsRead);
+        notificationRepository.markAllAsReadByUserId(userId);
     }
 }

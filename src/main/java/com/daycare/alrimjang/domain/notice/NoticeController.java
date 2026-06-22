@@ -1,5 +1,8 @@
+// NoticeController.java
+// 변경: saveNotice, saveDraft에 @Valid 추가
 package com.daycare.alrimjang.domain.notice;
 
+import jakarta.validation.Valid;                 // ✅ 추가
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +23,6 @@ public class NoticeController {
 
     private final NoticeService noticeService;
 
-    // 교사 알림장 목록 페이지
     @GetMapping
     public String noticeList(@AuthenticationPrincipal UserDetails userDetails,
                              @RequestParam(required = false)
@@ -37,7 +39,6 @@ public class NoticeController {
         return "teacher/notice";
     }
 
-    // 교사 알림장 상세 (답변 보기)
     @GetMapping("/{id}")
     public String noticeDetail(@AuthenticationPrincipal UserDetails userDetails,
                                @PathVariable Long id, Model model) {
@@ -46,25 +47,22 @@ public class NoticeController {
         return "teacher/notice-detail";
     }
 
-    // 알림장 저장 (임시저장 / 발행)
     @PostMapping("/save")
     public String saveNotice(@AuthenticationPrincipal UserDetails userDetails,
-                             @ModelAttribute NoticeRequestDto dto) throws IOException {
+                             @Valid @ModelAttribute NoticeRequestDto dto) throws IOException {  // ✅ @Valid 추가
 
         noticeService.saveNotice(userDetails.getUsername(), dto);
         return "redirect:/teacher/notice";
     }
 
-    // 임시저장
     @PostMapping("/draft")
     public String saveDraft(@AuthenticationPrincipal UserDetails userDetails,
-                            @ModelAttribute NoticeRequestDto dto) throws IOException {
+                            @Valid @ModelAttribute NoticeRequestDto dto) throws IOException {  // ✅ @Valid 추가
 
         noticeService.saveDraft(userDetails.getUsername(), dto);
         return "redirect:/teacher/notice";
     }
 
-    // 등원 여부 즉시 변경
     @PostMapping("/attended")
     @ResponseBody
     public ResponseEntity<?> updateAttended(

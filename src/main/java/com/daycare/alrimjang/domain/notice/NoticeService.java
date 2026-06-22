@@ -1,3 +1,6 @@
+// NoticeService.java
+// 변경: getNoticeList() → Map 기반 일괄 조회로 N+1 제거
+//       import java.util.Map 추가
 package com.daycare.alrimjang.domain.notice;
 
 import com.daycare.alrimjang.domain.child.Child;
@@ -20,6 +23,8 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;                          // ✅ 추가
+import java.util.stream.Collectors;            // ✅ 추가
 
 @Service
 @RequiredArgsConstructor
@@ -81,19 +86,28 @@ public class NoticeService {
         Classroom classroom = classrooms.get(0);
         List<Child> children = childRepository.findByClassroomId(classroom.getId());
 
+        // ✅ 알림장·메모를 반 단위로 한 번에 조회 (기존: 원아 수 × 2 쿼리)
+        Map<Long, Notice> noticeByChildId = noticeRepository
+                .findAllByClassroomIdAndDate(classroom.getId(), date)
+                .stream()
+                .collect(Collectors.toMap(
+                        n -> n.getChild().getId(),
+                        n -> n,
+                        (a, b) -> a.getStatus() == Notice.Status.DRAFT ? a : b
+                ));
+
+        Map<Long, ParentMemo> memoByChildId = parentMemoRepository
+                .findAllByClassroomIdAndDate(classroom.getId(), date)
+                .stream()
+                .collect(Collectors.toMap(
+                        m -> m.getChild().getId(),
+                        m -> m,
+                        (a, b) -> b
+                ));
+
         return children.stream().map(child -> {
-            List<Notice> notices = noticeRepository.findAllByChildIdAndDate(child.getId(), date);
-            Notice notice = null;
-            if (!notices.isEmpty()) {
-                notice = notices.stream()
-                        .filter(n -> n.getStatus() == Notice.Status.DRAFT)
-                        .findFirst()
-                        .orElse(notices.get(notices.size() - 1));
-            }
-
-            List<ParentMemo> memos = parentMemoRepository.findAllByChildIdAndDate(child.getId(), date);
-            ParentMemo memo = memos.isEmpty() ? null : memos.get(memos.size() - 1);
-
+            Notice notice = noticeByChildId.get(child.getId());
+            ParentMemo memo = memoByChildId.get(child.getId());
             return NoticeListDto.of(child, notice, memo);
         }).toList();
     }
@@ -156,7 +170,6 @@ public class NoticeService {
             noticeReplyRepository.save(reply);
         }
 
-        // 신규 발행 시 학부모에게 알림 전송
         if (isNew && status == Notice.Status.PUBLISHED) {
             for (User parent : child.getParents()) {
                 notificationService.sendNotification(parent,

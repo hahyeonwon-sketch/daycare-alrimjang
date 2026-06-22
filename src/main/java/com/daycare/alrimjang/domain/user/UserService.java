@@ -1,3 +1,6 @@
+// UserService.java
+// 변경: changePassword, withdraw 파라미터에서 PasswordEncoder 중복 제거
+//       (필드 주입으로 이미 있음)
 package com.daycare.alrimjang.domain.user;
 
 import lombok.RequiredArgsConstructor;
@@ -12,7 +15,6 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // 학부모 회원가입
     @Transactional
     public void register(RegisterRequestDto dto) {
 
@@ -35,17 +37,15 @@ public class UserService {
         userRepository.save(user);
     }
 
-    // 내 정보 조회
     @Transactional(readOnly = true)
     public User getMyInfo(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
     }
 
-    // 비밀번호 변경
+    // ✅ PasswordEncoder 파라미터 제거 (필드 주입 사용)
     @Transactional
-    public void changePassword(String email, String currentPassword, String newPassword,
-                               PasswordEncoder passwordEncoder) {
+    public void changePassword(String email, String currentPassword, String newPassword) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
@@ -56,7 +56,6 @@ public class UserService {
         user.updatePassword(passwordEncoder.encode(newPassword));
     }
 
-    // 알림 설정 변경
     @Transactional
     public void updateEmailNotification(String email, boolean emailNotification) {
         User user = userRepository.findByEmail(email)
@@ -65,9 +64,9 @@ public class UserService {
         user.updateEmailNotification(emailNotification);
     }
 
-    // 회원 탈퇴
+    // ✅ PasswordEncoder 파라미터 제거 (필드 주입 사용)
     @Transactional
-    public void withdraw(String email, String password, PasswordEncoder passwordEncoder) {
+    public void withdraw(String email, String password) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
