@@ -11,15 +11,15 @@
 <th:block layout:fragment="content">
     <div>
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="fw-bold" style="color: var(--primary)">🌿 행사보고</h4>
+            <h4 class="fw-bold" style="color: var(--primary)">행사보고</h4>
             <button class="btn btn-primary" onclick="openAddModal()">+ 행사보고 등록</button>
         </div>
 
         <!-- 검색 + 기간 필터 -->
-        <div class="d-flex flex-wrap gap-2 mb-3">
-            <form th:action="@{/teacher/event/search}" method="get" class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+            <form th:action="@{/teacher/event/search}" method="get" class="d-flex gap-2 align-items-center">
                 <input type="text" class="form-control" name="keyword"
-                       th:value="${keyword}" placeholder="제목 또는 내용으로 검색" style="max-width: 250px;">
+                       th:value="${keyword}" placeholder="제목 또는 내용으로 검색" style="width: 350px;">
                 <button type="submit" class="btn btn-outline-secondary">검색</button>
             </form>
             <form th:action="@{/teacher/event/date}" method="get" class="d-flex gap-2 align-items-center">
@@ -30,7 +30,7 @@
                        th:value="${endDate}" style="width: 150px;">
                 <button type="submit" class="btn btn-outline-secondary">기간 조회</button>
             </form>
-            <a th:href="@{/teacher/event}" class="btn btn-outline-secondary">전체보기</a>
+            <a th:href="@{/teacher/event}" class="btn btn-outline-secondary align-self-center">전체보기</a>
         </div>
 
         <div th:if="${#lists.isEmpty(eventReports)}" class="text-center text-muted py-5">
@@ -133,6 +133,7 @@
             modules: {
                 toolbar: [
                     ['bold', 'italic', 'underline'],
+                    [{ 'color': [] }, { 'background': [] }],
                     [{ 'align': [] }],
                     [{ 'size': ['small', false, 'large', 'huge'] }],
                     ['clean']

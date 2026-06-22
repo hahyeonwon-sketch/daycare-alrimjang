@@ -1,12 +1,15 @@
 package com.daycare.alrimjang.domain.announcement;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -37,23 +40,37 @@ public class AnnouncementController {
     // 공지사항 등록
     @PostMapping("/teacher/announcement/save")
     public String save(@AuthenticationPrincipal UserDetails userDetails,
-                       @ModelAttribute AnnouncementRequestDto dto) throws IOException {
+                       @Valid @ModelAttribute AnnouncementRequestDto dto,
+                       BindingResult bindingResult,
+                       RedirectAttributes redirectAttributes) throws IOException {
+        if (bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "제목과 내용을 올바르게 입력해주세요.");
+            return "redirect:/teacher/announcement";
+        }
         announcementService.saveAnnouncement(userDetails.getUsername(), dto);
         return "redirect:/teacher/announcement";
     }
 
     // 공지사항 수정
     @PostMapping("/teacher/announcement/{id}/update")
-    public String update(@PathVariable Long id,
-                         @ModelAttribute AnnouncementRequestDto dto) throws IOException {
-        announcementService.updateAnnouncement(id, dto);
+    public String update(@AuthenticationPrincipal UserDetails userDetails,
+                         @PathVariable Long id,
+                         @Valid @ModelAttribute AnnouncementRequestDto dto,
+                         BindingResult bindingResult,
+                         RedirectAttributes redirectAttributes) throws IOException {
+        if (bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "제목과 내용을 올바르게 입력해주세요.");
+            return "redirect:/teacher/announcement/" + id;
+        }
+        announcementService.updateAnnouncement(userDetails.getUsername(), id, dto);
         return "redirect:/teacher/announcement";
     }
 
     // 공지사항 삭제
     @PostMapping("/teacher/announcement/{id}/delete")
-    public String delete(@PathVariable Long id) {
-        announcementService.deleteAnnouncement(id);
+    public String delete(@AuthenticationPrincipal UserDetails userDetails,
+                         @PathVariable Long id) {
+        announcementService.deleteAnnouncement(userDetails.getUsername(), id);
         return "redirect:/teacher/announcement";
     }
 

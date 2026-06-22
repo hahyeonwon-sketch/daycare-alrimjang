@@ -44,16 +44,18 @@ public class ScheduleController {
 
     // 일정 수정
     @PostMapping("/teacher/schedule/{id}/update")
-    public String updateSchedule(@PathVariable Long id,
+    public String updateSchedule(@AuthenticationPrincipal UserDetails userDetails,
+                                 @PathVariable Long id,
                                  @ModelAttribute ScheduleRequestDto dto) {
-        scheduleService.updateSchedule(id, dto);
+        scheduleService.updateSchedule(userDetails.getUsername(), id, dto);
         return "redirect:/teacher/schedule";
     }
 
     // 일정 삭제
     @PostMapping("/teacher/schedule/{id}/delete")
-    public String deleteSchedule(@PathVariable Long id) {
-        scheduleService.deleteSchedule(id);
+    public String deleteSchedule(@AuthenticationPrincipal UserDetails userDetails,
+                                 @PathVariable Long id) {
+        scheduleService.deleteSchedule(userDetails.getUsername(), id);
         return "redirect:/teacher/schedule";
     }
 }

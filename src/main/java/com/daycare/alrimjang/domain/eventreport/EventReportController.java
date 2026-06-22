@@ -1,12 +1,15 @@
 package com.daycare.alrimjang.domain.eventreport;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -37,23 +40,37 @@ public class EventReportController {
     // 행사보고 등록
     @PostMapping("/teacher/event/save")
     public String save(@AuthenticationPrincipal UserDetails userDetails,
-                       @ModelAttribute EventReportRequestDto dto) throws IOException {
+                       @Valid @ModelAttribute EventReportRequestDto dto,
+                       BindingResult bindingResult,
+                       RedirectAttributes redirectAttributes) throws IOException {
+        if (bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "제목, 날짜, 내용을 올바르게 입력해주세요.");
+            return "redirect:/teacher/event";
+        }
         eventReportService.saveEventReport(userDetails.getUsername(), dto);
         return "redirect:/teacher/event";
     }
 
     // 행사보고 수정
     @PostMapping("/teacher/event/{id}/update")
-    public String update(@PathVariable Long id,
-                         @ModelAttribute EventReportRequestDto dto) throws IOException {
-        eventReportService.updateEventReport(id, dto);
+    public String update(@AuthenticationPrincipal UserDetails userDetails,
+                         @PathVariable Long id,
+                         @Valid @ModelAttribute EventReportRequestDto dto,
+                         BindingResult bindingResult,
+                         RedirectAttributes redirectAttributes) throws IOException {
+        if (bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "제목, 날짜, 내용을 올바르게 입력해주세요.");
+            return "redirect:/teacher/event/" + id;
+        }
+        eventReportService.updateEventReport(userDetails.getUsername(), id, dto);
         return "redirect:/teacher/event";
     }
 
     // 행사보고 삭제
     @PostMapping("/teacher/event/{id}/delete")
-    public String delete(@PathVariable Long id) {
-        eventReportService.deleteEventReport(id);
+    public String delete(@AuthenticationPrincipal UserDetails userDetails,
+                         @PathVariable Long id) {
+        eventReportService.deleteEventReport(userDetails.getUsername(), id);
         return "redirect:/teacher/event";
     }
 

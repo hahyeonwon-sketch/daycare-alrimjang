@@ -1,12 +1,22 @@
 package com.daycare.alrimjang.domain.notice;
 
+import com.daycare.alrimjang.domain.child.Child;
+import com.daycare.alrimjang.domain.child.ChildRepository;
+import com.daycare.alrimjang.domain.parentmemo.ParentMemo;
+import com.daycare.alrimjang.domain.parentmemo.ParentMemoService;
+import com.daycare.alrimjang.domain.user.User;
+import com.daycare.alrimjang.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 
 @Controller
@@ -15,9 +25,38 @@ import java.util.List;
 public class ParentNoticeController {
 
     private final NoticeService noticeService;
+    private final ParentMemoService parentMemoService;
+    private final UserRepository userRepository;
+    private final ChildRepository childRepository;
 
-    // 학부모 알림장 목록 페이지
     @GetMapping
+    public String noticeMain(@AuthenticationPrincipal UserDetails userDetails,
+                             @RequestParam(required = false)
+                             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                             Model model) {
+
+        if (date == null) date = LocalDate.now();
+
+        User parent = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 학부모입니다."));
+
+        Child child = childRepository.findByParentId(parent.getId())
+                .orElseThrow(() -> new IllegalArgumentException("연결된 원아가 없습니다."));
+
+        NoticeService.NoticeDetailResult result =
+                noticeService.getNoticeDetailByDate(userDetails.getUsername(), child.getId(), date);
+        ParentMemo memo = parentMemoService.getMemo(child.getId(), date);
+
+        model.addAttribute("notice", result.notice());
+        model.addAttribute("replies", result.replies());
+        model.addAttribute("memo", memo);
+        model.addAttribute("selectedDate", date);
+        model.addAttribute("childName", child.getName());
+
+        return "parent/notice-detail";
+    }
+
+    @GetMapping("/list")
     public String noticeList(@AuthenticationPrincipal UserDetails userDetails,
                              Model model) {
 
@@ -26,24 +65,23 @@ public class ParentNoticeController {
         return "parent/notice";
     }
 
-    // 알림장 상세 조회 + 읽음 처리
-    @GetMapping("/{noticeId}")
-    public String noticeDetail(@AuthenticationPrincipal UserDetails userDetails,
-                               @PathVariable Long noticeId,
-                               Model model) {
+    @PostMapping("/memo")
+    public String saveMemo(@AuthenticationPrincipal UserDetails userDetails,
+                           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                           @RequestParam String content,
+                           @RequestParam(required = false) MultipartFile[] photos) throws IOException {
 
-        Notice notice = noticeService.getNoticeDetail(userDetails.getUsername(), noticeId);
-        model.addAttribute("notice", notice);
-        return "parent/notice-detail";
+        parentMemoService.saveMemo(userDetails.getUsername(), date, content, photos);
+        return "redirect:/parent/notice?date=" + date + "&saved=true";
     }
 
-    // 답장 저장
     @PostMapping("/{noticeId}/reply")
     public String saveReply(@AuthenticationPrincipal UserDetails userDetails,
                             @PathVariable Long noticeId,
                             @RequestParam String content) {
 
         noticeService.saveReply(userDetails.getUsername(), noticeId, content);
-        return "redirect:/parent/notice/" + noticeId;
+        LocalDate date = noticeService.getNoticeDateById(noticeId);
+        return "redirect:/parent/notice?date=" + date;
     }
 }

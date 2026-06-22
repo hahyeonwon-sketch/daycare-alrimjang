@@ -6,11 +6,11 @@
 <th:block layout:fragment="content">
     <div>
         <div class="mb-4">
-            <h4 class="fw-bold" style="color: var(--primary)">🌿 행사보고</h4>
+            <h4 class="fw-bold" style="color: var(--primary)">행사보고</h4>
         </div>
 
         <!-- 검색창 -->
-        <form th:action="@{/parent/event/search}" method="get" class="mb-3 d-flex gap-2">
+        <form th:action="@{/parent/event/search}" method="get" class="mb-3 d-flex gap-2 align-items-center">
             <input type="text" class="form-control" name="keyword"
                    th:value="${keyword}" placeholder="제목 또는 내용으로 검색" style="max-width: 300px;">
             <button type="submit" class="btn btn-outline-secondary">검색</button>

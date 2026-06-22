@@ -4,9 +4,11 @@ import com.daycare.alrimjang.domain.child.Child;
 import com.daycare.alrimjang.domain.child.ChildRepository;
 import com.daycare.alrimjang.domain.classroom.Classroom;
 import com.daycare.alrimjang.domain.classroom.ClassroomRepository;
+import com.daycare.alrimjang.domain.notification.NotificationService;
 import com.daycare.alrimjang.domain.user.User;
 import com.daycare.alrimjang.domain.user.UserRepository;
-import com.daycare.alrimjang.global.mail.MailService;
+import com.daycare.alrimjang.global.FileUploadUtils;
+import com.daycare.alrimjang.global.HtmlSanitizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -14,13 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -31,12 +28,20 @@ public class EventReportService {
     private final ClassroomRepository classroomRepository;
     private final ChildRepository childRepository;
     private final UserRepository userRepository;
-    private final MailService mailService;
+    private final NotificationService notificationService;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
 
-    // 교사 - 행사보고 목록 조회
+    private void validateTeacherOwnsEventReport(User teacher, EventReport eventReport) {
+        List<Classroom> classrooms = classroomRepository.findByTeacherId(teacher.getId());
+        boolean owns = classrooms.stream()
+                .anyMatch(c -> c.getId().equals(eventReport.getClassroom().getId()));
+        if (!owns) {
+            throw new IllegalArgumentException("본인 담당 반의 행사보고가 아닙니다.");
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<EventReport> getTeacherEventReportList(String email) {
         User teacher = userRepository.findByEmail(email)
@@ -48,7 +53,6 @@ public class EventReportService {
         return eventReportRepository.findByClassroomIdOrderByCreatedAtDesc(classrooms.get(0).getId());
     }
 
-    // 학부모 - 행사보고 목록 조회
     @Transactional(readOnly = true)
     public List<EventReport> getParentEventReportList(String email) {
         User parent = userRepository.findByEmail(email)
@@ -60,14 +64,12 @@ public class EventReportService {
         return eventReportRepository.findByClassroomIdOrderByCreatedAtDesc(classroom.getId());
     }
 
-    // 행사보고 상세 조회
     @Transactional(readOnly = true)
     public EventReport getEventReport(Long id) {
         return eventReportRepository.findWithPhotosById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 행사보고입니다."));
     }
 
-    // 행사보고 등록
     @Transactional
     public void saveEventReport(String email, EventReportRequestDto dto) throws IOException {
         User teacher = userRepository.findByEmail(email)
@@ -79,24 +81,17 @@ public class EventReportService {
         EventReport eventReport = EventReport.builder()
                 .title(dto.getTitle())
                 .eventDate(dto.getEventDate())
-                .content(dto.getContent())
+                .content(HtmlSanitizer.sanitize(dto.getContent()))
                 .classroom(classrooms.get(0))
                 .teacher(teacher)
                 .build();
 
         eventReportRepository.save(eventReport);
 
-        // 사진 저장
         if (dto.getPhotos() != null) {
             for (MultipartFile photo : dto.getPhotos()) {
                 if (!photo.isEmpty()) {
-                    Path uploadPath = Paths.get(System.getProperty("user.dir"), uploadDir);
-                    if (!Files.exists(uploadPath)) {
-                        Files.createDirectories(uploadPath);
-                    }
-                    String fileName = UUID.randomUUID() + "_" + photo.getOriginalFilename();
-                    Files.copy(photo.getInputStream(), uploadPath.resolve(fileName));
-
+                    String fileName = FileUploadUtils.store(photo, System.getProperty("user.dir"), uploadDir);
                     eventPhotoRepository.save(EventPhoto.builder()
                             .filePath(fileName)
                             .eventReport(eventReport)
@@ -105,36 +100,33 @@ public class EventReportService {
             }
         }
 
-        // 반 학부모들에게 행사보고 등록 메일 발송
+        // 반 학부모들에게 알림 발송
         List<Child> children = childRepository.findByClassroomId(classrooms.get(0).getId());
         for (Child child : children) {
             for (User parent : child.getParents()) {
-                if (parent.isEmailNotification()) {
-                    mailService.sendEventReportMail(parent.getEmail(), parent.getName(), dto.getTitle());
-                }
+                notificationService.sendNotification(parent,
+                        "[행사보고] " + dto.getTitle() + " 행사보고가 등록되었습니다.");
             }
         }
     }
 
-    // 행사보고 수정
     @Transactional
-    public void updateEventReport(Long id, EventReportRequestDto dto) throws IOException {
+    public void updateEventReport(String email, Long id, EventReportRequestDto dto) throws IOException {
+
+        User teacher = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 교사입니다."));
+
         EventReport eventReport = eventReportRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 행사보고입니다."));
 
-        eventReport.update(dto.getTitle(), dto.getEventDate(), dto.getContent());
+        validateTeacherOwnsEventReport(teacher, eventReport);
 
-        // 새 사진 추가
+        eventReport.update(dto.getTitle(), dto.getEventDate(), HtmlSanitizer.sanitize(dto.getContent()));
+
         if (dto.getPhotos() != null) {
             for (MultipartFile photo : dto.getPhotos()) {
                 if (!photo.isEmpty()) {
-                    Path uploadPath = Paths.get(System.getProperty("user.dir"), uploadDir);
-                    if (!Files.exists(uploadPath)) {
-                        Files.createDirectories(uploadPath);
-                    }
-                    String fileName = UUID.randomUUID() + "_" + photo.getOriginalFilename();
-                    Files.copy(photo.getInputStream(), uploadPath.resolve(fileName));
-
+                    String fileName = FileUploadUtils.store(photo, System.getProperty("user.dir"), uploadDir);
                     eventPhotoRepository.save(EventPhoto.builder()
                             .filePath(fileName)
                             .eventReport(eventReport)
@@ -144,13 +136,20 @@ public class EventReportService {
         }
     }
 
-    // 행사보고 삭제
     @Transactional
-    public void deleteEventReport(Long id) {
+    public void deleteEventReport(String email, Long id) {
+
+        User teacher = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 교사입니다."));
+
+        EventReport eventReport = eventReportRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 행사보고입니다."));
+
+        validateTeacherOwnsEventReport(teacher, eventReport);
+
         eventReportRepository.deleteById(id);
     }
 
-    // 교사 - 행사보고 검색
     @Transactional(readOnly = true)
     public List<EventReport> searchTeacherEventReport(String email, String keyword) {
         User teacher = userRepository.findByEmail(email)
@@ -162,7 +161,6 @@ public class EventReportService {
         return eventReportRepository.searchByKeyword(classrooms.get(0).getId(), keyword);
     }
 
-    // 학부모 - 행사보고 검색
     @Transactional(readOnly = true)
     public List<EventReport> searchParentEventReport(String email, String keyword) {
         User parent = userRepository.findByEmail(email)
@@ -174,7 +172,6 @@ public class EventReportService {
         return eventReportRepository.searchByKeyword(classroom.getId(), keyword);
     }
 
-    // 교사 - 기간별 조회
     @Transactional(readOnly = true)
     public List<EventReport> getTeacherEventReportByDate(String email, LocalDate startDate, LocalDate endDate) {
         User teacher = userRepository.findByEmail(email)

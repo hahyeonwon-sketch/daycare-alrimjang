@@ -19,5 +19,8 @@ public class NoticeRequestDto {
     private String special;
     private String extra;
     private boolean attended;
-    private List<MultipartFile> photos; // 사진 추가
+    private List<MultipartFile> photos;
+    private String teacherReply;
+    private String nap;
+    private String temperature;
 }

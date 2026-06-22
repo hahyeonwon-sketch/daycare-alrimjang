@@ -23,9 +23,16 @@ public class ScheduleNotificationService {
     private final ChildRepository childRepository;
     private final MailService mailService;
 
-    // 매일 오후 6시에 내일 일정 알림 발송
+    /**
+     * 매일 오후 6시에 내일 일정 알림 발송.
+     *
+     * 수정: @Transactional(readOnly = true) 제거 → 기본 REQUIRED(읽기+쓰기) 트랜잭션 사용.
+     * readOnly = true 안에서 NotificationService(쓰기)를 호출하면
+     * MySQL Connector/J 가 "Connection is read-only" 에러를 낼 수 있었음.
+     * 알림 발송 후 markAsNotified()로 중복 발송도 방지.
+     */
     @Scheduled(cron = "0 0 18 * * *")
-    @Transactional(readOnly = true)
+    @Transactional
     public void sendScheduleNotification() {
         LocalDate tomorrow = LocalDate.now().plusDays(1);
 
@@ -47,6 +54,9 @@ public class ScheduleNotificationService {
                     }
                 }
             }
+
+            // 알림 발송 완료 표시 (더티체킹으로 UPDATE 실행됨)
+            schedule.markAsNotified();
         }
     }
 }

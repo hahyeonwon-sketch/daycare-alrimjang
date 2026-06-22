@@ -18,6 +18,16 @@ public class ScheduleService {
     private final ClassroomRepository classroomRepository;
     private final UserRepository userRepository;
 
+    // 교사가 이 일정을 수정/삭제할 권한이 있는지 검증
+    private void validateTeacherOwnsSchedule(User teacher, Schedule schedule) {
+        List<Classroom> classrooms = classroomRepository.findByTeacherId(teacher.getId());
+        boolean owns = classrooms.stream()
+                .anyMatch(c -> c.getId().equals(schedule.getClassroom().getId()));
+        if (!owns) {
+            throw new IllegalArgumentException("본인 담당 반의 일정이 아닙니다.");
+        }
+    }
+
     // 교사 담당 반 일정 목록 조회
     @Transactional(readOnly = true)
     public List<Schedule> getScheduleList(String email) {
@@ -69,17 +79,31 @@ public class ScheduleService {
 
     // 일정 수정
     @Transactional
-    public void updateSchedule(Long scheduleId, ScheduleRequestDto dto) {
+    public void updateSchedule(String email, Long scheduleId, ScheduleRequestDto dto) {
+
+        User teacher = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 교사입니다."));
 
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다."));
+
+        validateTeacherOwnsSchedule(teacher, schedule);
 
         schedule.update(dto.getTitle(), dto.getDate(), dto.getEndDate(), dto.getContent());
     }
 
     // 일정 삭제
     @Transactional
-    public void deleteSchedule(Long scheduleId) {
+    public void deleteSchedule(String email, Long scheduleId) {
+
+        User teacher = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 교사입니다."));
+
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다."));
+
+        validateTeacherOwnsSchedule(teacher, schedule);
+
         scheduleRepository.deleteById(scheduleId);
     }
 }

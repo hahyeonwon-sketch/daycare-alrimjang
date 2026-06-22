@@ -4,21 +4,19 @@ import com.daycare.alrimjang.domain.child.Child;
 import com.daycare.alrimjang.domain.child.ChildRepository;
 import com.daycare.alrimjang.domain.classroom.Classroom;
 import com.daycare.alrimjang.domain.classroom.ClassroomRepository;
+import com.daycare.alrimjang.domain.notification.NotificationService;
 import com.daycare.alrimjang.domain.user.User;
 import com.daycare.alrimjang.domain.user.UserRepository;
-import com.daycare.alrimjang.global.mail.MailService;
+import com.daycare.alrimjang.global.FileUploadUtils;
+import com.daycare.alrimjang.global.HtmlSanitizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -28,12 +26,20 @@ public class AnnouncementService {
     private final ClassroomRepository classroomRepository;
     private final ChildRepository childRepository;
     private final UserRepository userRepository;
-    private final MailService mailService;
+    private final NotificationService notificationService;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
 
-    // 교사 - 공지사항 목록 조회
+    private void validateTeacherOwnsAnnouncement(User teacher, Announcement announcement) {
+        List<Classroom> classrooms = classroomRepository.findByTeacherId(teacher.getId());
+        boolean owns = classrooms.stream()
+                .anyMatch(c -> c.getId().equals(announcement.getClassroom().getId()));
+        if (!owns) {
+            throw new IllegalArgumentException("본인 담당 반의 공지사항이 아닙니다.");
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<Announcement> getTeacherAnnouncementList(String email) {
         User teacher = userRepository.findByEmail(email)
@@ -45,7 +51,6 @@ public class AnnouncementService {
         return announcementRepository.findByClassroomIdOrderByCreatedAtDesc(classrooms.get(0).getId());
     }
 
-    // 학부모 - 공지사항 목록 조회
     @Transactional(readOnly = true)
     public List<Announcement> getParentAnnouncementList(String email) {
         User parent = userRepository.findByEmail(email)
@@ -57,14 +62,12 @@ public class AnnouncementService {
         return announcementRepository.findByClassroomIdOrderByCreatedAtDesc(classroom.getId());
     }
 
-    // 공지사항 상세 조회
     @Transactional(readOnly = true)
     public Announcement getAnnouncement(Long id) {
         return announcementRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공지사항입니다."));
     }
 
-    // 공지사항 등록
     @Transactional
     public void saveAnnouncement(String email, AnnouncementRequestDto dto) throws IOException {
         User teacher = userRepository.findByEmail(email)
@@ -75,18 +78,12 @@ public class AnnouncementService {
 
         String filePath = null;
         if (dto.getFile() != null && !dto.getFile().isEmpty()) {
-            Path uploadPath = Paths.get(System.getProperty("user.dir"), uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-            String fileName = UUID.randomUUID() + "_" + dto.getFile().getOriginalFilename();
-            Files.copy(dto.getFile().getInputStream(), uploadPath.resolve(fileName));
-            filePath = fileName;
+            filePath = FileUploadUtils.store(dto.getFile(), System.getProperty("user.dir"), uploadDir);
         }
 
         Announcement announcement = Announcement.builder()
                 .title(dto.getTitle())
-                .content(dto.getContent())
+                .content(HtmlSanitizer.sanitize(dto.getContent()))
                 .filePath(filePath)
                 .classroom(classrooms.get(0))
                 .teacher(teacher)
@@ -94,44 +91,49 @@ public class AnnouncementService {
 
         announcementRepository.save(announcement);
 
-        // 반 학부모들에게 공지사항 등록 메일 발송
+        // 반 학부모들에게 알림 발송
         List<Child> children = childRepository.findByClassroomId(classrooms.get(0).getId());
         for (Child child : children) {
             for (User parent : child.getParents()) {
-                if (parent.isEmailNotification()) {
-                    mailService.sendAnnouncementMail(parent.getEmail(), parent.getName(), dto.getTitle());
-                }
+                notificationService.sendNotification(parent,
+                        "[공지] " + dto.getTitle() + " 공지사항이 등록되었습니다.");
             }
         }
     }
 
-    // 공지사항 수정
     @Transactional
-    public void updateAnnouncement(Long id, AnnouncementRequestDto dto) throws IOException {
+    public void updateAnnouncement(String email, Long id, AnnouncementRequestDto dto) throws IOException {
+
+        User teacher = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 교사입니다."));
+
         Announcement announcement = announcementRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공지사항입니다."));
 
+        validateTeacherOwnsAnnouncement(teacher, announcement);
+
         String filePath = announcement.getFilePath();
         if (dto.getFile() != null && !dto.getFile().isEmpty()) {
-            Path uploadPath = Paths.get(System.getProperty("user.dir"), uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-            String fileName = UUID.randomUUID() + "_" + dto.getFile().getOriginalFilename();
-            Files.copy(dto.getFile().getInputStream(), uploadPath.resolve(fileName));
-            filePath = fileName;
+            filePath = FileUploadUtils.store(dto.getFile(), System.getProperty("user.dir"), uploadDir);
         }
 
-        announcement.update(dto.getTitle(), dto.getContent(), filePath);
+        announcement.update(dto.getTitle(), HtmlSanitizer.sanitize(dto.getContent()), filePath);
     }
 
-    // 공지사항 삭제
     @Transactional
-    public void deleteAnnouncement(Long id) {
+    public void deleteAnnouncement(String email, Long id) {
+
+        User teacher = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 교사입니다."));
+
+        Announcement announcement = announcementRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공지사항입니다."));
+
+        validateTeacherOwnsAnnouncement(teacher, announcement);
+
         announcementRepository.deleteById(id);
     }
 
-    // 교사 - 공지사항 검색
     @Transactional(readOnly = true)
     public List<Announcement> searchTeacherAnnouncement(String email, String keyword) {
         User teacher = userRepository.findByEmail(email)
@@ -143,7 +145,6 @@ public class AnnouncementService {
         return announcementRepository.searchByKeyword(classrooms.get(0).getId(), keyword);
     }
 
-    // 학부모 - 공지사항 검색
     @Transactional(readOnly = true)
     public List<Announcement> searchParentAnnouncement(String email, String keyword) {
         User parent = userRepository.findByEmail(email)
@@ -155,7 +156,6 @@ public class AnnouncementService {
         return announcementRepository.searchByKeyword(classroom.getId(), keyword);
     }
 
-    // 교사 - 기간별 조회
     @Transactional(readOnly = true)
     public List<Announcement> getTeacherAnnouncementByDate(String email, LocalDate startDate, LocalDate endDate) {
         User teacher = userRepository.findByEmail(email)
