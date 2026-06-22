@@ -33,3 +33,5 @@ build/
 
 # application 보안
 application-local.yml
+application-dev.yml
+application-prod.yml

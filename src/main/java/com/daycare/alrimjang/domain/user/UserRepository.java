@@ -2,13 +2,25 @@ package com.daycare.alrimjang.domain.user;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    // 이메일로 유저 조회 (로그인 시 사용)
     Optional<User> findByEmail(String email);
 
-    // 이메일 중복 체크 (회원가입 시 사용)
     boolean existsByEmail(String email);
+
+    // 역할로 조회
+    List<User> findByRole(User.Role role);
+
+    // 상태 + 역할로 조회
+    List<User> findByStatusAndRole(User.Status status, User.Role role);
+
+    // 상태로 개수 조회
+    long countByStatus(User.Status status);
+
+    long countByRole(User.Role role);
+
+    long countByStatusAndRole(User.Status status, User.Role role);
 }

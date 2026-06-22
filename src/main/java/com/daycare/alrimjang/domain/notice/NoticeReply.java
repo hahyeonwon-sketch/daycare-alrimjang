@@ -28,7 +28,7 @@ public class NoticeReply {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id", nullable = false)
-    private User parent;
+    private User author;
 
     @PrePersist
     public void prePersist() {

@@ -1,13 +1,47 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>관리자 대시보드</title>
-</head>
-<body>
-<h1>원장 관리자 페이지</h1>
-<form th:action="@{/auth/logout}" method="post" class="d-inline">
-    <button type="submit" class="btn btn-outline-secondary btn-sm">로그아웃</button>
-</form>
-</body>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
+
+<th:block layout:fragment="content">
+    <div>
+        <h4 class="fw-bold mb-4" style="color: var(--primary)">관리자 대시보드</h4>
+
+        <div class="row g-3 mb-4">
+            <!-- 승인 대기 -->
+            <div class="col-md-3">
+                <div class="card shadow-sm text-center p-3">
+                    <div class="text-muted small mb-1">승인 대기 학부모</div>
+                    <div class="fw-bold fs-3" style="color: var(--primary)" th:text="${pendingCount}">0</div>
+                    <a th:href="@{/admin/parent}" class="btn btn-outline-primary btn-sm mt-2">바로가기</a>
+                </div>
+            </div>
+            <!-- 교사 수 -->
+            <div class="col-md-3">
+                <div class="card shadow-sm text-center p-3">
+                    <div class="text-muted small mb-1">전체 교사</div>
+                    <div class="fw-bold fs-3" style="color: var(--primary)" th:text="${teacherCount}">0</div>
+                    <a th:href="@{/admin/teacher}" class="btn btn-outline-primary btn-sm mt-2">바로가기</a>
+                </div>
+            </div>
+            <!-- 학부모 수 -->
+            <div class="col-md-3">
+                <div class="card shadow-sm text-center p-3">
+                    <div class="text-muted small mb-1">승인된 학부모</div>
+                    <div class="fw-bold fs-3" style="color: var(--primary)" th:text="${parentCount}">0</div>
+                    <a th:href="@{/admin/parent}" class="btn btn-outline-primary btn-sm mt-2">바로가기</a>
+                </div>
+            </div>
+            <!-- 원아 수 -->
+            <div class="col-md-3">
+                <div class="card shadow-sm text-center p-3">
+                    <div class="text-muted small mb-1">전체 원아</div>
+                    <div class="fw-bold fs-3" style="color: var(--primary)" th:text="${childCount}">0</div>
+                    <a th:href="@{/admin/child}" class="btn btn-outline-primary btn-sm mt-2">바로가기</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
 </html>

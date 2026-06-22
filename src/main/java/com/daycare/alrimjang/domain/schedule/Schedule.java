@@ -41,4 +41,13 @@ public class Schedule {
     public void markAsNotified() {
         this.notified = true;
     }
+
+    private LocalDate endDate; // 종료일 추가
+
+    public void update(String title, LocalDate date, LocalDate endDate, String content) {
+        this.title = title;
+        this.date = date;
+        this.endDate = endDate;
+        this.content = content;
+    }
 }

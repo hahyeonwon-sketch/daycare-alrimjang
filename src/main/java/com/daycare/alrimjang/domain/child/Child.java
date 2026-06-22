@@ -5,6 +5,9 @@ import com.daycare.alrimjang.domain.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "children")
 @Getter
@@ -24,12 +27,18 @@ public class Child {
     @JoinColumn(name = "classroom_id", nullable = false)
     private Classroom classroom;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_id")
-    private User parent;
+    // 1:1 → N:M 으로 변경 (엄마/아빠 둘 다 연결 가능)
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "child_parents",
+            joinColumns = @JoinColumn(name = "child_id"),
+            inverseJoinColumns = @JoinColumn(name = "parent_id")
+    )
+    @Builder.Default
+    private List<User> parents = new ArrayList<>();
 
-    public void assignParent(User parent) {
-        this.parent = parent;
+    public void addParent(User parent) {
+        this.parents.add(parent);
     }
 
     public void updateClassroom(Classroom classroom) {

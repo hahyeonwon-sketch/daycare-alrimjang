@@ -12,26 +12,38 @@
 <div class="login-wrap">
     <div class="login-card">
 
-        <div class="login-logo">🍀</div>
+        <div style="display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 16px;">
+            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                <circle cx="13" cy="13" r="7" fill="#4A6FA5" opacity="0.85"/>
+                <circle cx="23" cy="13" r="7" fill="#4A6FA5" opacity="0.7"/>
+                <circle cx="13" cy="23" r="7" fill="#4A6FA5" opacity="0.7"/>
+                <circle cx="23" cy="23" r="7" fill="#4A6FA5" opacity="0.55"/>
+                <circle cx="18" cy="18" r="4" fill="white"/>
+                <rect x="17" y="25" width="2" height="7" rx="1" fill="#4A6FA5" opacity="0.6"/>
+            </svg>
+            <div style="display: flex; flex-direction: column; line-height: 1.1;">
+                <span style="font-size: 18px; font-weight: 500; color: #4A6FA5; letter-spacing: -0.3px;">클로버</span>
+                <span style="font-size: 11px; font-weight: 400; color: #888; letter-spacing: 0.5px;">어린이집</span>
+            </div>
+        </div>
+
         <div class="login-title">안녕하세요. 클로버 어린이집 입니다.</div>
         <div class="login-subtitle">로그인 후 이용해주세요.</div>
 
-        <!-- 로그인 실패 시 오류 메시지 -->
         <div th:if="${param.error}" class="alert alert-danger" role="alert">
             이메일 또는 비밀번호가 올바르지 않습니다.
         </div>
 
-        <!-- 로그아웃 성공 메시지 -->
         <div th:if="${param.logout}" class="alert alert-success" role="alert">
             로그아웃 되었습니다.
         </div>
 
-        <!-- 회원가입 완료 메시지 -->
         <div th:if="${param.registered}" class="alert alert-success" role="alert">
             가입 신청이 완료되었습니다. 원장 선생님 승인 후 로그인 가능합니다.
         </div>
 
         <form th:action="@{/auth/login}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             <div class="mb-3">
                 <label for="username" class="form-label">이메일</label>
                 <input type="email" class="form-control" id="username" name="username"

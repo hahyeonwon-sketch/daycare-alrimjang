@@ -1,238 +1,395 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
 <head>
-    <meta charset="UTF-8">
-    <title>알림장 - 어린이집</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet">
-    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <th:block layout:fragment="head-extra">
+    </th:block>
 </head>
-<body>
 
-<div class="container py-4">
+<th:block layout:fragment="content">
+    <div>
 
-    <!-- 상단 헤더 -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold" style="color: var(--primary)">🌸 알림장</h4>
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="fw-bold" style="color: var(--primary)">🌸 알림장</h4>
-            <form th:action="@{/auth/logout}" method="post" class="d-inline">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <button type="submit" class="btn btn-outline-secondary btn-sm">로그아웃</button>
+            <h4 class="fw-bold" style="color: var(--primary)">알림장</h4>
+        </div>
+
+        <!-- 날짜 선택 -->
+        <div class="mb-3">
+            <form method="get" th:action="@{/teacher/notice}" class="d-flex gap-2 align-items-center">
+                <input type="date" name="date" class="form-control" style="width: 200px;"
+                       th:value="${selectedDate}">
+                <button type="submit" class="btn btn-primary btn-sm">조회</button>
             </form>
         </div>
-    </div>
 
-    <!-- 날짜 선택 -->
-    <div class="mb-3">
-        <form method="get" th:action="@{/teacher/notice}" class="d-flex gap-2 align-items-center">
-            <input type="date" name="date" class="form-control" style="width: 200px;"
-                   th:value="${selectedDate}">
-            <button type="submit" class="btn btn-primary btn-sm">조회</button>
-        </form>
-    </div>
+        <!-- 전체 공지 임시저장 -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="fw-bold mb-2" style="color: var(--primary)">전체 공지 임시저장</div>
+                <form th:action="@{/teacher/notice/draft/all}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <input type="hidden" name="date" th:value="${selectedDate}">
+                    <div class="d-flex gap-2">
+                        <textarea class="form-control" name="extra" id="globalExtra" rows="2"
+                                  placeholder="전체 학부모에게 전달할 공지를 입력하세요"></textarea>
+                        <button type="submit" class="btn btn-warning px-4" style="white-space: nowrap;">
+                            전체 임시저장
+                        </button>
+                    </div>
+                </form>
+                <div class="text-muted small mt-1">
+                    ※ 입력 후 작성 버튼을 누르면 해당 내용이 기타 공지란에 자동으로 채워집니다.
+                </div>
+            </div>
+        </div>
 
-    <!-- 원아 목록 테이블 -->
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead>
-                <tr style="background-color: var(--primary-light);">
-                    <th class="ps-4">원아 이름</th>
-                    <th>등원 여부</th>
-                    <th>학부모 메모</th>
-                    <th>읽은 시간</th>
-                    <th>작성</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="notice : ${noticeList}">
-                    <td class="ps-4 fw-bold" th:text="${notice.childName}"></td>
-                    <td>
-                        <span th:if="${notice.attended}" class="badge bg-success">O</span>
-                        <span th:unless="${notice.attended}" class="badge bg-secondary">X</span>
-                    </td>
-                    <td>
+        <!-- 원아 목록 테이블 -->
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead>
+                    <tr style="background-color: var(--primary-light);">
+                        <th class="text-center ps-4">원아 이름</th>
+                        <th class="text-center">등원 여부</th>
+                        <th class="text-center">학부모 메모</th>
+                        <th class="text-center">읽은 시간</th>
+                        <th class="text-center">확인</th>
+                        <th class="text-center">작성</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="notice : ${noticeList}">
+                        <td class="ps-4 fw-bold text-center" th:text="${notice.childName}"></td>
+                        <td class="text-center">
+                            <span th:if="${notice.attended}"
+                                  class="badge bg-success"
+                                  style="cursor: pointer;"
+                                  th:attr="data-child-id=${notice.childId},data-date=${selectedDate}"
+                                  onclick="toggleAttended(this, false)">O</span>
+                            <span th:unless="${notice.attended}"
+                                  class="badge bg-secondary"
+                                  style="cursor: pointer;"
+                                  th:attr="data-child-id=${notice.childId},data-date=${selectedDate}"
+                                  onclick="toggleAttended(this, true)">X</span>
+                        </td>
+                        <td class="text-center">
                             <span th:if="${notice.parentMemoContent != null}"
                                   th:text="${#strings.abbreviate(notice.parentMemoContent, 20)}"
                                   class="text-muted small"></span>
-                        <span th:unless="${notice.parentMemoContent != null}"
-                              class="text-muted small">-</span>
-                    </td>
-                    <td>
+                            <span th:unless="${notice.parentMemoContent != null}"
+                                  class="text-muted small">-</span>
+                        </td>
+                        <td class="text-center">
                             <span th:if="${notice.readAt != null}"
                                   th:text="${#temporals.format(notice.readAt, 'HH:mm')}"
                                   class="text-muted small"></span>
-                        <span th:unless="${notice.readAt != null}"
-                              class="text-muted small">미확인</span>
-                    </td>
-                    <td>
-                        <button class="btn btn-primary btn-sm"
-                                th:data-child-id="${notice.childId}"
-                                th:data-child-name="${notice.childName}"
-                                th:data-attended="${notice.attended}"
-                                th:data-meal="${notice.meal}"
-                                th:data-play="${notice.play}"
-                                th:data-toilet="${notice.toilet}"
-                                th:data-special="${notice.special}"
-                                th:data-extra="${notice.extra}"
-                                th:data-photos="${notice.photoFileNames}"
-                                onclick="openModal(this)">
-                            작성
-                        </button>
-                    </td>
-                </tr>
-                <tr th:if="${#lists.isEmpty(noticeList)}">
-                    <td colspan="5" class="text-center text-muted py-4">
-                        담당 반 원아가 없습니다.
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- 알림장 작성 모달 -->
-<div class="modal fade" id="noticeModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header" style="background-color: var(--primary-light);">
-                <h5 class="modal-title fw-bold" id="modalTitle">알림장 작성</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            <span th:unless="${notice.readAt != null}"
+                                  class="text-muted small">미확인</span>
+                        </td>
+                        <td class="text-center">
+                            <span th:if="${notice.status != null and notice.status.name() == 'DRAFT'}"
+                                  class="badge bg-warning text-dark">임시저장</span>
+                            <span th:if="${notice.status != null and notice.status.name() == 'PUBLISHED'}"
+                                  class="badge bg-success">작성완료</span>
+                            <span th:if="${notice.status == null}"
+                                  class="badge bg-secondary">미작성</span>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-primary btn-sm"
+                                    th:data-child-id="${notice.childId}"
+                                    th:data-child-name="${notice.childName}"
+                                    th:data-attended="${notice.attended}"
+                                    th:data-meal="${notice.meal}"
+                                    th:data-play="${notice.play}"
+                                    th:data-toilet="${notice.toilet}"
+                                    th:data-nap="${notice.nap}"
+                                    th:data-special="${notice.special}"
+                                    th:data-extra="${notice.extra}"
+                                    th:data-photos="${notice.photoFileNames}"
+                                    th:attr="data-reply-contents=${notice.replyContents},data-reply-names=${notice.replyParentNames},data-memo-content=${notice.parentMemoContent},data-memo-photos=${notice.parentMemoPhotos}"
+                                    onclick="openModal(this)">
+                                작성
+                            </button>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(noticeList)}">
+                        <td colspan="6" class="text-center text-muted py-4">
+                            담당 반 원아가 없습니다.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
-            <form th:action="@{/teacher/notice/save}" method="post" enctype="multipart/form-data">
-                <div class="modal-body">
-                    <input type="hidden" name="childId" id="modalChildId">
-                    <input type="hidden" name="date" th:value="${selectedDate}">
-
-                    <!-- 등원 여부 -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">등원 여부</label>
-                        <div class="d-flex gap-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="attended" value="true" id="attendedY" checked>
-                                <label class="form-check-label" for="attendedY">O (등원)</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="attended" value="false" id="attendedN">
-                                <label class="form-check-label" for="attendedN">X (미등원)</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 식사 -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">식사</label>
-                        <textarea class="form-control" name="meal" rows="2" placeholder="식사 내용을 입력하세요"></textarea>
-                    </div>
-
-                    <!-- 오늘의 놀이 -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">오늘의 놀이</label>
-                        <textarea class="form-control" name="play" rows="2" placeholder="오늘의 놀이 내용을 입력하세요"></textarea>
-                    </div>
-
-                    <!-- 배변 사항 -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">배변 사항</label>
-                        <textarea class="form-control" name="toilet" rows="2" placeholder="배변 사항을 입력하세요"></textarea>
-                    </div>
-
-                    <!-- 특이 사항 -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">특이 사항</label>
-                        <textarea class="form-control" name="special" rows="2" placeholder="특이 사항을 입력하세요"></textarea>
-                    </div>
-
-                    <!-- 기타 공지 -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">기타 공지</label>
-                        <textarea class="form-control" name="extra" rows="2" placeholder="기타 공지를 입력하세요"></textarea>
-                    </div>
-
-                    <!-- 사진 업로드 -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">사진 업로드 (최대 5장)</label>
-                        <input type="file" class="form-control" id="photoInput"
-                               name="photos" multiple accept="image/*"
-                               onchange="previewPhotos(this)">
-                    </div>
-
-                    <!-- 사진 미리보기 슬라이드 -->
-                    <div id="previewArea" class="d-none">
-                        <label class="form-label fw-bold">사진 미리보기</label>
-                        <div id="previewCarousel" class="carousel slide border rounded p-2" data-bs-ride="false">
-                            <div class="carousel-inner" id="carouselInner"></div>
-                            <button class="carousel-control-prev" type="button"
-                                    data-bs-target="#previewCarousel" data-bs-slide="prev">
-                                <span class="carousel-control-prev-icon" style="filter: invert(1)"></span>
-                            </button>
-                            <button class="carousel-control-next" type="button"
-                                    data-bs-target="#previewCarousel" data-bs-slide="next">
-                                <span class="carousel-control-next-icon" style="filter: invert(1)"></span>
-                            </button>
-                        </div>
-                        <div class="text-muted small mt-1" id="photoCount"></div>
-                    </div>
-
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
-                    <button type="submit" class="btn btn-primary">저장</button>
-                </div>
-            </form>
         </div>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    function openModal(btn) {
-        const childId = btn.getAttribute('data-child-id');
-        const childName = btn.getAttribute('data-child-name');
-        const attended = btn.getAttribute('data-attended');
-        const meal = btn.getAttribute('data-meal') || '';
-        const play = btn.getAttribute('data-play') || '';
-        const toilet = btn.getAttribute('data-toilet') || '';
-        const special = btn.getAttribute('data-special') || '';
-        const extra = btn.getAttribute('data-extra') || '';
-        const photosAttr = btn.getAttribute('data-photos') || '[]';
+    <!-- 알림장 작성 모달 -->
+    <div class="modal fade" id="noticeModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: var(--primary-light);">
+                    <h5 class="modal-title fw-bold" id="modalTitle">알림장 작성</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="noticeForm" th:action="@{/teacher/notice/save}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <div class="modal-body">
+                        <input type="hidden" name="childId" id="modalChildId">
+                        <input type="hidden" name="date" th:value="${selectedDate}">
 
-        document.getElementById('modalChildId').value = childId;
-        document.getElementById('modalTitle').textContent = childName + ' 알림장 작성';
+                        <!-- 학부모가 작성한 알림장 -->
+                        <div id="parentMemoArea" class="mb-3 d-none">
+                            <div class="fw-bold mb-2" style="color: var(--primary)">학부모 작성 알림장</div>
+                            <div id="parentMemoContent" class="p-2 rounded mb-2"
+                                 style="background-color: var(--primary-light);"></div>
+                            <div id="parentMemoPhotos" class="d-flex gap-2 flex-wrap"></div>
+                        </div>
 
-        // 기존 내용 채우기
-        document.querySelector('[name=meal]').value = meal;
-        document.querySelector('[name=play]').value = play;
-        document.querySelector('[name=toilet]').value = toilet;
-        document.querySelector('[name=special]').value = special;
-        document.querySelector('[name=extra]').value = extra;
+                        <!-- 등원 여부 버튼 -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">등원 여부</label>
+                            <div class="d-flex gap-2">
+                                <button type="button" id="attendedBtn" class="btn btn-success px-4"
+                                        onclick="setAttended(true)">O 등원</button>
+                                <button type="button" id="absentBtn" class="btn btn-outline-secondary px-4"
+                                        onclick="setAttended(false)">X 미등원</button>
+                            </div>
+                            <input type="hidden" name="attended" id="attendedHidden" value="true">
+                        </div>
 
-        // 등원 여부
-        if (attended === 'true') {
-            document.getElementById('attendedY').checked = true;
-        } else {
-            document.getElementById('attendedN').checked = true;
+                        <!-- 학부모 답장 목록 -->
+                        <div id="replyArea" class="mb-3 d-none">
+                            <div class="fw-bold mb-2" style="color: var(--primary)">학부모 답장</div>
+                            <div id="replyList"></div>
+                        </div>
+
+                        <!-- 교사 답변 작성 -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">학부모에게 답변</label>
+                            <textarea class="form-control" name="teacherReply" rows="4"
+                                      placeholder="학부모님께 전달할 답변을 입력하세요"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">식사</label>
+                            <textarea class="form-control" name="meal" rows="4"
+                                      placeholder="식사 내용을 입력하세요"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">오늘의 놀이</label>
+                            <textarea class="form-control" name="play" rows="4"
+                                      placeholder="오늘의 놀이 내용을 입력하세요"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">낮잠</label>
+                            <textarea class="form-control" name="nap" rows="4"
+                                      placeholder="낮잠 시간을 입력하세요 (예: 13:00 ~ 15:00)"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">배변 사항</label>
+                            <textarea class="form-control" name="toilet" rows="4"
+                                      placeholder="배변 사항을 입력하세요"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">특이 사항</label>
+                            <textarea class="form-control" name="special" rows="4"
+                                      placeholder="특이 사항을 입력하세요"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">기타 공지</label>
+                            <textarea class="form-control" name="extra" id="modalExtra" rows="4"
+                                      placeholder="기타 공지를 입력하세요"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">사진 업로드 (최대 5장)</label>
+                            <input type="file" class="form-control" id="photoInput"
+                                   name="photos" multiple accept="image/*"
+                                   onchange="previewPhotos(this)">
+                        </div>
+
+                        <div id="previewArea" class="d-none">
+                            <label class="form-label fw-bold">사진 미리보기</label>
+                            <div id="previewCarousel" class="carousel slide border rounded p-2" data-bs-ride="false">
+                                <div class="carousel-inner" id="carouselInner"></div>
+                                <button class="carousel-control-prev" type="button"
+                                        data-bs-target="#previewCarousel" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" style="filter: invert(1)"></span>
+                                </button>
+                                <button class="carousel-control-next" type="button"
+                                        data-bs-target="#previewCarousel" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" style="filter: invert(1)"></span>
+                                </button>
+                            </div>
+                            <div class="text-muted small mt-1" id="photoCount"></div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary px-4 py-2"
+                                data-bs-dismiss="modal">취소</button>
+                        <button type="button" class="btn btn-warning px-4 py-2"
+                                onclick="saveDraft()">임시저장</button>
+                        <button type="submit" class="btn btn-primary px-4 py-2">저장</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block layout:fragment="script-extra">
+    <script th:inline="javascript">
+        const csrfHeader = /*[[${_csrf.headerName}]]*/ '';
+        const csrfToken = /*[[${_csrf.token}]]*/ '';
+
+        function toggleAttended(badge, newValue) {
+            const childId = badge.getAttribute('data-child-id');
+            const date = badge.getAttribute('data-date');
+
+            fetch('/teacher/notice/attended', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    [csrfHeader]: csrfToken
+                },
+                body: `childId=${childId}&date=${date}&attended=${newValue}`
+            }).then(res => {
+                if (res.ok) {
+                    if (newValue) {
+                        badge.className = 'badge bg-success';
+                        badge.textContent = 'O';
+                    } else {
+                        badge.className = 'badge bg-secondary';
+                        badge.textContent = 'X';
+                    }
+                    badge.onclick = () => toggleAttended(badge, !newValue);
+                }
+            });
         }
 
-        // 기존 사진 미리보기
-        const carouselInner = document.getElementById('carouselInner');
-        const previewArea = document.getElementById('previewArea');
-        const photoCount = document.getElementById('photoCount');
+        function setAttended(value) {
+            document.getElementById('attendedHidden').value = value;
+            if (value) {
+                document.getElementById('attendedBtn').className = 'btn btn-success px-4';
+                document.getElementById('absentBtn').className = 'btn btn-outline-secondary px-4';
+            } else {
+                document.getElementById('attendedBtn').className = 'btn btn-outline-secondary px-4';
+                document.getElementById('absentBtn').className = 'btn btn-danger px-4';
+            }
+        }
 
-        carouselInner.innerHTML = '';
-        document.getElementById('photoInput').value = '';
+        function saveDraft() {
+            const form = document.getElementById('noticeForm');
+            form.action = '/teacher/notice/draft';
+            form.submit();
+        }
 
-        // 저장된 사진 파싱
-        const photos = photosAttr.replace('[', '').replace(']', '')
-            .split(',').map(s => s.trim()).filter(s => s.length > 0);
+        function openModal(btn) {
+            const childId = btn.getAttribute('data-child-id');
+            const childName = btn.getAttribute('data-child-name');
+            const attended = btn.getAttribute('data-attended');
+            const meal = btn.getAttribute('data-meal') || '';
+            const play = btn.getAttribute('data-play') || '';
+            const toilet = btn.getAttribute('data-toilet') || '';
+            const nap = btn.getAttribute('data-nap') || '';
+            const special = btn.getAttribute('data-special') || '';
+            const savedExtra = btn.getAttribute('data-extra') || '';
+            const photosAttr = btn.getAttribute('data-photos') || '[]';
+            const replyContentsAttr = btn.getAttribute('data-reply-contents') || '[]';
+            const replyNamesAttr = btn.getAttribute('data-reply-names') || '[]';
+            const memoContent = btn.getAttribute('data-memo-content') || '';
+            const memoPhotosAttr = btn.getAttribute('data-memo-photos') || '[]';
 
-        if (photos.length > 0) {
-            photos.forEach((fileName, index) => {
-                const item = document.createElement('div');
-                item.className = 'carousel-item' + (index === 0 ? ' active' : '');
-                item.innerHTML = `
+            const globalExtraVal = document.getElementById('globalExtra').value.trim();
+            const extra = globalExtraVal || savedExtra;
+
+            document.getElementById('modalChildId').value = childId;
+            document.getElementById('modalTitle').textContent = childName + ' 알림장 작성';
+
+            document.querySelector('[name=meal]').value = meal;
+            document.querySelector('[name=play]').value = play;
+            document.querySelector('[name=toilet]').value = toilet;
+            document.querySelector('[name=nap]').value = nap;
+            document.querySelector('[name=special]').value = special;
+            document.getElementById('modalExtra').value = extra;
+            document.querySelector('[name=teacherReply]').value = '';
+
+            setAttended(attended === 'true');
+
+            const parentMemoArea = document.getElementById('parentMemoArea');
+            const parentMemoContent = document.getElementById('parentMemoContent');
+            const parentMemoPhotos = document.getElementById('parentMemoPhotos');
+
+            parentMemoPhotos.innerHTML = '';
+
+            if (memoContent.trim() !== '' && memoContent !== 'null') {
+                parentMemoContent.textContent = memoContent;
+
+                const memoPhotos = memoPhotosAttr.replace('[', '').replace(']', '')
+                    .split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+                memoPhotos.forEach(fileName => {
+                    const img = document.createElement('img');
+                    img.src = '/uploads/' + fileName;
+                    img.className = 'rounded';
+                    img.style = 'width: 80px; height: 80px; object-fit: cover; cursor: pointer;';
+                    img.onclick = () => window.open('/uploads/' + fileName, '_blank');
+                    parentMemoPhotos.appendChild(img);
+                });
+
+                parentMemoArea.classList.remove('d-none');
+            } else {
+                parentMemoArea.classList.add('d-none');
+            }
+
+            const replyArea = document.getElementById('replyArea');
+            const replyList = document.getElementById('replyList');
+            replyList.innerHTML = '';
+
+            const replyContents = replyContentsAttr.replace('[', '').replace(']', '')
+                .split(',').map(s => s.trim()).filter(s => s.length > 0);
+            const replyNames = replyNamesAttr.replace('[', '').replace(']', '')
+                .split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+            if (replyContents.length > 0) {
+                replyContents.forEach((content, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'mb-2';
+                    div.innerHTML = `
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold small">${replyNames[i] || '학부모'}</span>
+                        </div>
+                        <div class="p-2 rounded mt-1" style="background-color: var(--primary-light);">${content}</div>
+                    `;
+                    replyList.appendChild(div);
+                });
+                replyArea.classList.remove('d-none');
+            } else {
+                replyArea.classList.add('d-none');
+            }
+
+            const carouselInner = document.getElementById('carouselInner');
+            const previewArea = document.getElementById('previewArea');
+            const photoCount = document.getElementById('photoCount');
+
+            carouselInner.innerHTML = '';
+            document.getElementById('photoInput').value = '';
+
+            const photos = photosAttr.replace('[', '').replace(']', '')
+                .split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+            if (photos.length > 0) {
+                photos.forEach((fileName, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'carousel-item' + (index === 0 ? ' active' : '');
+                    item.innerHTML = `
                     <div class="position-relative">
                         <img src="/uploads/${fileName}" class="d-block w-100 rounded"
                              style="max-height: 300px; object-fit: contain; background: #f8f8f8;">
@@ -240,43 +397,43 @@
                             ${index + 1} / ${photos.length}
                         </span>
                     </div>`;
-                carouselInner.appendChild(item);
-            });
-            photoCount.textContent = `${photos.length}장 저장됨`;
-            previewArea.classList.remove('d-none');
-        } else {
-            previewArea.classList.add('d-none');
+                    carouselInner.appendChild(item);
+                });
+                photoCount.textContent = `${photos.length}장 저장됨`;
+                previewArea.classList.remove('d-none');
+            } else {
+                previewArea.classList.add('d-none');
+            }
+
+            new bootstrap.Modal(document.getElementById('noticeModal')).show();
         }
 
-        new bootstrap.Modal(document.getElementById('noticeModal')).show();
-    }
+        function previewPhotos(input) {
+            const files = Array.from(input.files);
 
-    function previewPhotos(input) {
-        const files = Array.from(input.files);
+            if (files.length > 5) {
+                alert('사진은 최대 5장까지 업로드 가능합니다.');
+                input.value = '';
+                return;
+            }
 
-        if (files.length > 5) {
-            alert('사진은 최대 5장까지 업로드 가능합니다.');
-            input.value = '';
-            return;
-        }
+            const carouselInner = document.getElementById('carouselInner');
+            const previewArea = document.getElementById('previewArea');
+            const photoCount = document.getElementById('photoCount');
 
-        const carouselInner = document.getElementById('carouselInner');
-        const previewArea = document.getElementById('previewArea');
-        const photoCount = document.getElementById('photoCount');
+            carouselInner.innerHTML = '';
 
-        carouselInner.innerHTML = '';
+            if (files.length === 0) {
+                previewArea.classList.add('d-none');
+                return;
+            }
 
-        if (files.length === 0) {
-            previewArea.classList.add('d-none');
-            return;
-        }
-
-        files.forEach((file, index) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const item = document.createElement('div');
-                item.className = 'carousel-item' + (index === 0 ? ' active' : '');
-                item.innerHTML = `
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const item = document.createElement('div');
+                    item.className = 'carousel-item' + (index === 0 ? ' active' : '');
+                    item.innerHTML = `
                     <div class="position-relative">
                         <img src="${e.target.result}" class="d-block w-100 rounded"
                              style="max-height: 300px; object-fit: contain; background: #f8f8f8;">
@@ -284,15 +441,15 @@
                             ${index + 1} / ${files.length}
                         </span>
                     </div>`;
-                carouselInner.appendChild(item);
-            };
-            reader.readAsDataURL(file);
-        });
+                    carouselInner.appendChild(item);
+                };
+                reader.readAsDataURL(file);
+            });
 
-        photoCount.textContent = `${files.length}장 선택됨`;
-        previewArea.classList.remove('d-none');
-    }
-</script>
+            photoCount.textContent = `${files.length}장 선택됨`;
+            previewArea.classList.remove('d-none');
+        }
+    </script>
+</th:block>
 
-</body>
 </html>

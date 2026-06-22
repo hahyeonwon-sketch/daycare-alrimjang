@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
+
+<th:block layout:fragment="content">
+    <div>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold" style="color: var(--primary)">알림장 작성</h4>
+        </div>
+
+        <!-- 날짜 선택 -->
+        <div class="mb-3">
+            <form method="get" th:action="@{/parent/memo}" class="d-flex gap-2 align-items-center">
+                <input type="date" name="date" class="form-control" style="width: 200px;"
+                       th:value="${selectedDate}">
+                <button type="submit" class="btn btn-primary btn-sm">조회</button>
+            </form>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="fw-bold mb-3" style="color: var(--primary)"
+                     th:text="${childName} + ' - ' + ${#temporals.format(selectedDate, 'yyyy년 MM월 dd일')} + ' 알림장'"></div>
+
+                <form th:action="@{/parent/memo/save}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <input type="hidden" name="date" th:value="${selectedDate}">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">전달할 내용</label>
+                        <textarea class="form-control" name="content" rows="5"
+                                  placeholder="아이의 기분, 가정에서의 특이사항, 컨디션 등을 적어주세요"
+                                  th:text="${memo != null} ? ${memo.content} : ''"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">사진 업로드 (최대 5장)</label>
+                        <input type="file" class="form-control" id="photoInput"
+                               name="photos" multiple accept="image/*"
+                               onchange="previewPhotos(this)">
+                    </div>
+
+                    <div id="previewArea" class="d-none mb-3">
+                        <label class="form-label fw-bold">사진 미리보기</label>
+                        <div id="previewCarousel" class="carousel slide border rounded p-2" data-bs-ride="false">
+                            <div class="carousel-inner" id="carouselInner"></div>
+                            <button class="carousel-control-prev" type="button"
+                                    data-bs-target="#previewCarousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" style="filter: invert(1)"></span>
+                            </button>
+                            <button class="carousel-control-next" type="button"
+                                    data-bs-target="#previewCarousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" style="filter: invert(1)"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 기존 저장된 사진 -->
+                    <div th:if="${memo != null and not #lists.isEmpty(memo.photos)}" class="mb-3">
+                        <label class="form-label fw-bold">저장된 사진</label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <img th:each="photo : ${memo.photos}"
+                                 th:src="@{/uploads/{file}(file=${photo.filePath})}"
+                                 class="rounded" style="width: 100px; height: 100px; object-fit: cover;">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary px-4 py-2">저장</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<th:block layout:fragment="script-extra">
+    <script>
+        function previewPhotos(input) {
+            const files = Array.from(input.files);
+            if (files.length > 5) {
+                alert('사진은 최대 5장까지 업로드 가능합니다.');
+                input.value = '';
+                return;
+            }
+
+            const carouselInner = document.getElementById('carouselInner');
+            const previewArea = document.getElementById('previewArea');
+
+            carouselInner.innerHTML = '';
+
+            if (files.length === 0) {
+                previewArea.classList.add('d-none');
+                return;
+            }
+
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const item = document.createElement('div');
+                    item.className = 'carousel-item' + (index === 0 ? ' active' : '');
+                    item.innerHTML = `
+                    <div class="position-relative">
+                        <img src="${e.target.result}" class="d-block w-100 rounded"
+                             style="max-height: 300px; object-fit: contain; background: #f8f8f8;">
+                        <span class="position-absolute top-0 end-0 badge bg-dark m-2">
+                            ${index + 1} / ${files.length}
+                        </span>
+                    </div>`;
+                    carouselInner.appendChild(item);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            previewArea.classList.remove('d-none');
+        }
+    </script>
+</th:block>
+
+</html>
