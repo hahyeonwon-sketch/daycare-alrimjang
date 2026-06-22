@@ -118,6 +118,7 @@ src/main/java/com/daycare/alrimjang/
 ---
 
 ## 배포
+- **URL**: http://15.164.231.42:8080/auth/login
 - AWS EC2 (t3.micro) + RDS (MySQL, db.t3.micro)
 - Spring Boot jar 직접 실행
 - 환경변수로 DB 접속 정보 및 민감 정보 관리
