@@ -109,3 +109,11 @@ src/main/java/com/daycare/alrimjang/
 - 브랜치: `feature/#이슈번호-작업명` (예: feature/#3-notice-write)
 - 커밋: `[#이슈번호] 작업 내용` (예: [#3] 알림장 작성 모달 구현)
 - PR: 이슈 단위로 생성
+
+---
+
+## 배포
+- AWS EC2 (t3.micro) + RDS (MySQL, db.t3.micro)
+- Spring Boot jar 직접 실행
+- 환경변수로 DB 접속 정보 및 민감 정보 관리 (.env)
+- 운영/개발 프로파일 분리 (application-prod.yml / application-dev.yml)
